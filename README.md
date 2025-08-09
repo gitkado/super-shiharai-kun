@@ -66,3 +66,43 @@ If the server starts successfully, you'll see the following output:
 2024-12-04 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
 ```
 
+## Project Structure
+
+The project follows a layered architecture pattern with clear separation of concerns:
+
+```
+src/main/kotlin/com/example/
+├── Application.kt                    # Main application entry point
+├── config/                          # Configuration layer
+│   ├── database/                    # Database connection settings
+│   ├── security/                    # JWT and authentication configuration
+│   ├── http/                        # CORS and HTTP settings
+│   └── serialization/               # JSON serialization settings
+├── domain/                          # Domain layer (business logic)
+│   ├── model/                       # Domain entities
+│   ├── repository/                  # Repository interfaces
+│   ├── service/                     # Business logic services
+│   ├── constants/                   # Business constants and rules
+│   └── exception/                   # Business exceptions
+├── infrastructure/                  # Infrastructure layer
+│   ├── database/                    # Database implementation
+│   │   ├── schema/                  # Database table definitions
+│   │   └── repository/              # Repository implementations
+│   └── security/                    # Security implementations
+├── presentation/                    # Presentation layer (API)
+│   ├── dto/                        # Data Transfer Objects
+│   │   ├── request/                # Request DTOs
+│   │   └── response/               # Response DTOs
+│   ├── controller/                 # REST controllers
+│   └── routing/                    # Route definitions
+└── util/                           # Technical utility functions
+```
+
+### Layer Responsibilities
+
+- **Domain Layer**: Contains business logic, entities, and rules. Independent of external concerns.
+- **Infrastructure Layer**: Implements technical concerns like database access and external services.
+- **Presentation Layer**: Handles HTTP requests/responses and API contracts.
+- **Configuration Layer**: Manages application settings and framework configuration.
+- **Utility Layer**: Provides technical helper functions and extensions.
+
