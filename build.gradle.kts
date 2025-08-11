@@ -38,6 +38,14 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.logback.classic)
     implementation(libs.ktor.server.config.yaml)
+    
+    implementation("org.flywaydb:flyway-core:9.22.0")
+    implementation("com.zaxxer:HikariCP:5.0.1")
+    
+    // Koin for Dependency Injection
+    implementation(libs.koin.ktor)
+    implementation(libs.koin.logger.slf4j)
+    
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test.junit)
 }

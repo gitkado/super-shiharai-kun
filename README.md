@@ -1,108 +1,195 @@
-# super-shiharai-kun
+# スーパー支払い君.com
 
-This project was created using the [Ktor Project Generator](https://start.ktor.io).
+支払い管理システムのKotlin/Ktor REST APIサービスです。
 
-Here are some useful links to get you started:
+## 概要
 
-- [Ktor Documentation](https://ktor.io/docs/home.html)
-- [Ktor GitHub page](https://github.com/ktorio/ktor)
-- The [Ktor Slack chat](https://app.slack.com/client/T09229ZC6/C0A974TJ9). You'll need to [request an invite](https://surveys.jetbrains.com/s3/kotlin-slack-sign-up) to join.
+企業向けの支払い管理システムで、請求書の登録・管理と手数料計算を行います。
 
-## Features
+- 技術スタック: Kotlin/Ktor, PostgreSQL, Docker
+- アーキテクチャ: レイヤードアーキテクチャ + Clean Architecture
+- 手数料: 4% + 消費税10%
 
-Here's a list of features included in this project:
+## ビジネス機能
 
-| Name                                                                   | Description                                                                        |
-| ------------------------------------------------------------------------|------------------------------------------------------------------------------------ |
-| [Call Logging](https://start.ktor.io/p/call-logging)                   | Logs client requests                                                               |
-| [Call ID](https://start.ktor.io/p/callid)                              | Allows to identify a request/call.                                                 |
-| [Routing](https://start.ktor.io/p/routing)                             | Provides a structured routing DSL                                                  |
-| [Swagger](https://start.ktor.io/p/swagger)                             | Serves Swagger UI for your project                                                 |
-| [OpenAPI](https://start.ktor.io/p/openapi)                             | Serves OpenAPI documentation                                                       |
-| [kotlinx.serialization](https://start.ktor.io/p/kotlinx-serialization) | Handles JSON serialization using kotlinx.serialization library                     |
-| [Content Negotiation](https://start.ktor.io/p/content-negotiation)     | Provides automatic content conversion according to Content-Type and Accept headers |
-| [Postgres](https://start.ktor.io/p/postgres)                           | Adds Postgres database to your application                                         |
-| [Exposed](https://start.ktor.io/p/exposed)                             | Adds Exposed database to your application                                          |
-| [CORS](https://start.ktor.io/p/cors)                                   | Enables Cross-Origin Resource Sharing (CORS)                                       |
-| [Status Pages](https://start.ktor.io/p/status-pages)                   | Provides exception handling for routes                                             |
-| [Request Validation](https://start.ktor.io/p/request-validation)       | Adds validation for incoming requests                                              |
-| [Authentication](https://start.ktor.io/p/auth)                         | Provides extension point for handling the Authorization header                     |
-| [Authentication JWT](https://start.ktor.io/p/auth-jwt)                 | Handles JSON Web Token (JWT) bearer authentication scheme                          |
-| [Jackson](https://start.ktor.io/p/ktor-jackson)                        | Handles JSON serialization using Jackson library                                   |
+- ユーザー管理: 法人ユーザーの登録・認証
+- 請求書管理: 請求書の登録・一覧表示
+  - 手数料計算: 支払金額の4% + 消費税10%を自動計算
+- 認証・認可: JWT認証によるセキュアなAPI
 
-## Prerequisites
+## 技術機能
 
-Ensure you have Java installed and `JAVA_HOME` environment variable set:
+| 技術要素                      | 説明                      |
+|---------------------------|-------------------------|
+| Ktor 3.2.3            | Kotlin製の非同期Webフレームワーク   |
+| PostgreSQL 16.3       | 本番・開発用リレーショナルデータベース     |
+| H2 Database           | テスト用高速インメモリDB           |
+| Exposed ORM           | Kotlin製のタイプセーフなSQL DSL  |
+| Flyway                | データベースマイグレーションツール       |
+| Koin 4.1.0            | 軽量な依存性注入フレームワーク         |
+| HikariCP              | 高性能なJDBCコネクションプール       |
+| JWT認証                 | ステートレスな認証トークンシステム       |
+| Docker                | アプリケーションコンテナ化           |
+| kotlinx.serialization | Kotlin公式のJSONシリアライゼーション |
+
+## 事前準備
+
+開発環境に必要なツール:
 
 ```bash
-# Check Java version
+# Java 11以上がインストールされていることを確認
 java -version
 
-# Set JAVA_HOME (example for Unix-like systems)
+# JAVA_HOME環境変数の設定例
 export JAVA_HOME=/path/to/your/java
 
-# For SDKMAN users
+# SDKMAN利用者の場合
 export JAVA_HOME=$HOME/.sdkman/candidates/java/current
 ```
 
-## Building & Running
+## 開発環境・実行ルール
 
-To build or run the project, use one of the following tasks:
+プロジェクトでは3つの異なる環境セットアップを使い分けています。
 
-| Task                          | Description                                                          |
-| -------------------------------|---------------------------------------------------------------------- |
-| `./gradlew test`              | Run the tests                                                        |
-| `./gradlew build`             | Build everything                                                     |
-| `buildFatJar`                 | Build an executable JAR of the server with all dependencies included |
-| `buildImage`                  | Build the docker image to use with the fat JAR                       |
-| `publishImageToLocalRegistry` | Publish the docker image locally                                     |
-| `run`                         | Run the server                                                       |
-| `runDocker`                   | Run using the local docker image                                     |
+### 1. ローカル開発環境
 
-If the server starts successfully, you'll see the following output:
+用途: 日常的な開発作業  
+特徴: アプリはローカル実行、DBのみコンテナ
+
+```bash
+# PostgreSQL起動（コンテナ）
+docker compose -f docker/compose.yaml up -d
+
+# アプリケーション起動（ローカル）
+./gradlew run
+```
+
+- データベース: PostgreSQL (localhost:5432)
+- テーブル作成: Exposed ORM (`migration_strategy: exposed`)
+- 接続先: http://localhost:8080
+- 利点: 高速な開発サイクル、デバッグしやすい
+
+### 2. 結合確認環境
+
+用途: 本番環境に近い環境での結合テスト  
+特徴: アプリ・DBともにコンテナで動作
+
+```bash
+# アプリ + DB をコンテナで起動
+docker compose -f docker/compose.integration.yaml up --build -d
+```
+
+- データベース: PostgreSQL (コンテナ内)
+- テーブル作成: Flyway migrations (`migration_strategy: flyway`)
+- 接続先: http://localhost:8080
+- 利点: 本番に近い環境、CI/CDでも使用可能
+
+### 3. テスト環境
+
+用途: 単体テスト・自動テスト実行  
+特徴: 外部依存なし、高速実行
+
+```bash
+# テスト実行（PostgreSQL不要）
+./gradlew test
+```
+
+- データベース: H2 インメモリDB
+- テーブル作成: なし (`migration_strategy: none`)
+- 利点: 高速、外部依存なし、CIで安定動作
+
+## 環境設定・マイグレーション戦略
+
+### 環境変数
+
+| 変数名                           | デフォルト値                                                | 説明         |
+|-------------------------------|-------------------------------------------------------|------------|
+| `DATABASE_MIGRATION_STRATEGY` | `exposed`                                             | マイグレーション方法 |
+| `POSTGRES_URL`                | `jdbc:postgresql://localhost:5432/super_shiharai_kun` | DB接続URL    |
+| `POSTGRES_USER`               | `myuser`                                              | DBユーザー名    |
+| `POSTGRES_PASSWORD`           | `mypassword`                                          | DBパスワード    |
+| `JAVA_OPTS`                   | `-XX:+UseContainerSupport`                            | JVMオプション   |
+
+### マイグレーション戦略の使い分け
+
+| 戦略        | 環境      | 説明                          |
+|-----------|---------|-----------------------------|
+| `exposed` | ローカル開発  | Exposed ORMでテーブル自動作成、開発効率重視 |
+| `flyway`  | 結合確認・本番 | Flywayでマイグレーション実行、データ整合性重視  |
+| `none`    | テスト     | 何もしない、テスト速度重視               |
+
+## 開発フロー
+
+```bash
+# 1. 日常開発
+docker compose up -d          # DB起動
+./gradlew run                # 開発開始
+
+# 2. テスト実行
+./gradlew test               # 単体テスト（H2使用）
+
+# 3. 結合確認
+docker compose -f docker/compose.integration.yaml up --build -d
+curl http://localhost:8080/health  # 動作確認
+```
+
+## ビルド・実行コマンド
+
+プロジェクトのビルドと実行に使用するGradleタスク:
+
+| タスク                     | 説明                 |
+|-------------------------|--------------------|
+| `./gradlew test`        | テスト実行（H2インメモリDB使用） |
+| `./gradlew run`         | ローカル開発サーバー起動       |
+| `./gradlew build`       | 全体ビルド              |
+| `./gradlew buildFatJar` | 実行可能JAR作成（全依存関係含む） |
+| `./gradlew buildImage`  | Dockerイメージ作成       |
+
+アプリケーション起動成功時のログ例:
 
 ```
 2024-12-04 14:32:45.584 [main] INFO  Application - Application started in 0.303 seconds.
 2024-12-04 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
 ```
 
-## Project Structure
+## プロジェクト構成
 
-The project follows a layered architecture pattern with clear separation of concerns:
+レイヤードアーキテクチャパターンに従い、関心事の分離を明確にした構成:
 
 ```
 src/main/kotlin/com/example/
-├── Application.kt                    # Main application entry point
-├── config/                          # Configuration layer
-│   ├── database/                    # Database connection settings
-│   ├── security/                    # JWT and authentication configuration
-│   ├── http/                        # CORS and HTTP settings
-│   └── serialization/               # JSON serialization settings
-├── domain/                          # Domain layer (business logic)
-│   ├── model/                       # Domain entities
-│   ├── repository/                  # Repository interfaces
-│   ├── service/                     # Business logic services
-│   ├── constants/                   # Business constants and rules
-│   └── exception/                   # Business exceptions
-├── infrastructure/                  # Infrastructure layer
-│   ├── database/                    # Database implementation
-│   │   ├── schema/                  # Database table definitions
-│   │   └── repository/              # Repository implementations
-│   └── security/                    # Security implementations
-├── presentation/                    # Presentation layer (API)
-│   ├── dto/                        # Data Transfer Objects
-│   │   ├── request/                # Request DTOs
-│   │   └── response/               # Response DTOs
-│   ├── controller/                 # REST controllers
-│   └── routing/                    # Route definitions
-└── util/                           # Technical utility functions
+├── Application.kt                    # アプリケーションエントリーポイント
+├── config/                          # 設定レイヤー
+│   ├── database/                    # データベース接続設定
+│   ├── di/                          # Koin依存性注入設定
+│   ├── security/                    # JWT認証設定
+│   ├── http/                        # CORS・HTTP設定
+│   ├── monitoring/                  # ログ・監視設定
+│   └── serialization/               # JSONシリアライゼーション設定
+├── domain/                          # ドメインレイヤー（ビジネスロジック）
+│   ├── model/                       # ドメインエンティティ
+│   ├── repository/                  # リポジトリインターフェース
+│   ├── service/                     # ビジネスロジックサービス
+│   ├── constants/                   # ビジネス定数・ルール
+│   └── exception/                   # ビジネス例外
+├── infrastructure/                  # インフラストラクチャレイヤー
+│   ├── database/                    # データベース実装
+│   │   ├── schema/                  # テーブル定義・ORM
+│   │   └── repository/              # リポジトリ実装
+│   └── security/                    # セキュリティ実装
+├── presentation/                    # プレゼンテーションレイヤー（API）
+│   ├── dto/                        # データ転送オブジェクト
+│   │   ├── request/                # リクエストDTO
+│   │   └── response/               # レスポンスDTO
+│   ├── controller/                 # RESTコントローラー
+│   └── routing/                    # ルート定義
+└── util/                           # 技術的ユーティリティ関数
 ```
 
-### Layer Responsibilities
+### レイヤー責任
 
-- **Domain Layer**: Contains business logic, entities, and rules. Independent of external concerns.
-- **Infrastructure Layer**: Implements technical concerns like database access and external services.
-- **Presentation Layer**: Handles HTTP requests/responses and API contracts.
-- **Configuration Layer**: Manages application settings and framework configuration.
-- **Utility Layer**: Provides technical helper functions and extensions.
-
+- ドメインレイヤー: ビジネスロジック・エンティティ・ルールを含む。外部依存から独立
+- インフラストラクチャレイヤー: データベースアクセス・外部サービス等の技術的関心事を実装
+- プレゼンテーションレイヤー: HTTPリクエスト/レスポンス処理・APIコントラクトを担当
+- 設定レイヤー: アプリケーション設定・フレームワーク設定を管理
+- ユーティリティレイヤー: 技術的なヘルパー関数・拡張関数を提供

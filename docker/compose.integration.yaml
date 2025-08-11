@@ -1,0 +1,58 @@
+# Integration testing Docker Compose configuration for Super Shiharai-kun
+# This setup runs both application and database in containers with Flyway migrations
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: super-shiharai-kun-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - KTOR_ENV=test
+      # Database configuration (override application.yaml)
+      - POSTGRES_URL=jdbc:postgresql://db:5432/super_shiharai_kun
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      # Flyway configuration
+      - DATABASE_MIGRATION_STRATEGY=flyway
+      # JVM options for container environment
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseContainerSupport
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - super-shiharai-kun-network
+
+  db:
+    image: postgres:16.3
+    container_name: super-shiharai-kun-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: super_shiharai_kun
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      # Basic configuration for integration testing
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - super-shiharai-kun-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d super_shiharai_kun"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# Named volumes for integration testing
+volumes:
+  postgres_data:
+    driver: local
+
+# Custom network for service communication
+networks:
+  super-shiharai-kun-network:
+    driver: bridge

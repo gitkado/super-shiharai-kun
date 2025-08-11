@@ -1,52 +1,105 @@
 package com.example.config.database
 
+import com.example.infrastructure.database.schema.Users
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.transaction
 import io.ktor.server.application.*
+import io.ktor.server.application.ApplicationStopping
+import io.ktor.util.*
+import org.koin.ktor.ext.get
 import java.sql.Connection
-import java.sql.DriverManager
+
+enum class MigrationStrategy { FLYWAY, EXPOSED, NONE }
+
+// Application Attributeキー定義
+val HikariDataSourceKey = AttributeKey<HikariDataSource>("HikariDataSource")
 
 fun Application.configureDatabases() {
-    val dbConnection: Connection = connectToPostgres(embedded = true)
-    val database = Database.connect(
-        url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-        user = "root",
-        driver = "org.h2.Driver",
-        password = "",
-    )
-}
+    val url = environment.config.property("postgres.url").getString()
+    val user = environment.config.property("postgres.user").getString()
+    val password = environment.config.property("postgres.password").getString()
+    
+    log.info("Database configuration: url=$url, user=$user")
 
-/**
- * Makes a connection to a Postgres database.
- *
- * In order to connect to your running Postgres process,
- * please specify the following parameters in your configuration file:
- * - postgres.url -- Url of your running database process.
- * - postgres.user -- Username for database connection
- * - postgres.password -- Password for database connection
- *
- * If you don't have a database process running yet, you may need to [download]((https://www.postgresql.org/download/))
- * and install Postgres and follow the instructions [here](https://postgresapp.com/).
- * Then, you would be able to edit your url,  which is usually "jdbc:postgresql://host:port/database", as well as
- * user and password values.
- *
- *
- * @param embedded -- if [true] defaults to an embedded database for tests that runs locally in the same process.
- * In this case you don't have to provide any parameters in configuration file, and you don't have to run a process.
- *
- * @return [Connection] that represent connection to the database. Please, don't forget to close this connection when
- * your application shuts down by calling [Connection.close]
- * */
-fun Application.connectToPostgres(embedded: Boolean): Connection {
-    Class.forName("org.postgresql.Driver")
-    if (embedded) {
-        log.info("Using embedded H2 database for testing; replace this flag to use postgres")
-        return DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "root", "")
-    } else {
-        val url = environment.config.property("postgres.url").getString()
-        log.info("Connecting to postgres database at $url")
-        val user = environment.config.property("postgres.user").getString()
-        val password = environment.config.property("postgres.password").getString()
+    // HikariCP接続プールの設定
+    val hikari = HikariDataSource(HikariConfig().apply {
+        jdbcUrl = url
+        username = user
+        this.password = password
+        maximumPoolSize = environment.config.propertyOrNull("postgres.pool.max")?.getString()?.toInt() ?: 10
+        minimumIdle = environment.config.propertyOrNull("postgres.pool.min")?.getString()?.toInt() ?: 2
+        leakDetectionThreshold = 10_000 // 開発時のリーク検出
+        driverClassName = if (url.contains("h2")) "org.h2.Driver" else "org.postgresql.Driver"
+    })
 
-        return DriverManager.getConnection(url, user, password)
+    val database = Database.connect(hikari)
+    TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_REPEATABLE_READ
+
+    log.info("Database connection pool configured: max=${hikari.maximumPoolSize}, min=${hikari.minimumIdle}")
+
+    val strategy = runCatching {
+        MigrationStrategy.valueOf(
+            environment.config.property("database.migration_strategy").getString().uppercase()
+        )
+    }.getOrElse { 
+        log.warn("Invalid migration_strategy, falling back to EXPOSED")
+        MigrationStrategy.EXPOSED
     }
+
+    when (strategy) {
+        MigrationStrategy.FLYWAY -> {
+            log.info("Running Flyway migrations")
+            val flyway = Flyway.configure()
+                .dataSource(hikari)
+                .locations("classpath:db/migration")
+                .baselineOnMigrate(true)
+                .baselineVersion("1")
+                .validateOnMigrate(true)
+                .outOfOrder(false)
+                .cleanDisabled(true)
+                .load()
+            
+            try {
+                flyway.migrate()
+                log.info("Flyway migrations completed successfully")
+            } catch (e: Exception) {
+                log.error("Flyway migration failed", e)
+                throw e
+            }
+        }
+        MigrationStrategy.EXPOSED -> {
+            log.warn("Auto-creating tables via Exposed (dev-only, not recommended for production)")
+            transaction(database) {
+                // 全テーブルを配列で管理
+                val tables = arrayOf(
+                    Users
+                    // 新しいテーブルはここに追加
+                )
+                SchemaUtils.createMissingTablesAndColumns(*tables)
+                log.info("Created/updated ${tables.size} tables: ${tables.joinToString { it.tableName }}")
+            }
+        }
+        MigrationStrategy.NONE -> {
+            log.info("Skipping database migrations - assuming pre-provisioned DB")
+        }
+    }
+
+    environment.monitor.subscribe(ApplicationStopping) {
+        try {
+            hikari.close()
+            log.info("Database connection pool closed successfully")
+        } catch (e: Exception) {
+            log.error("Error closing database connection pool", e)
+        }
+    }
+
+    // HikariDataSourceをApplication Attributesに格納してKoinで参照できるようにする
+    attributes.put(HikariDataSourceKey, hikari)
+    
+    log.info("Database configuration completed successfully")
+    log.info("Services will be initialized via Koin DI")
 }
