@@ -1,10 +1,12 @@
 [versions]
+detekt = "1.23.7"
 exposed = "0.61.0"
 h2 = "2.3.232"
 koin = "4.1.0"
 kotlin = "2.1.10"
 ktor = "3.2.3"
-logback = "1.4.14"
+ktlint = "12.1.1"
+logback = "1.5.15"
 postgres = "42.7.7"
 
 [libraries]
@@ -35,6 +37,8 @@ ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref 
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 
 [plugins]
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

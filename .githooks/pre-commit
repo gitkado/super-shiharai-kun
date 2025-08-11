@@ -1,0 +1,26 @@
+#!/bin/sh
+# Pre-commit hook for ktlint check
+# This hook runs ktlintCheck before each commit to catch style violations early
+
+echo "🔍 Running ktlint check before commit..."
+
+# Run ktlintCheck
+./gradlew ktlintCheck
+
+# Check the exit code
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Commit rejected: ktlint check failed!"
+    echo ""
+    echo "💡 To fix formatting issues automatically, run:"
+    echo "   ./gradlew ktlintFormat"
+    echo ""
+    echo "🔧 Then stage your changes and commit again:"
+    echo "   git add ."
+    echo "   git commit -m \"your message\""
+    echo ""
+    exit 1
+fi
+
+echo "✅ ktlint check passed!"
+exit 0

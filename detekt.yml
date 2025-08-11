@@ -1,0 +1,99 @@
+# Detekt configuration for スーパー支払い君.com
+# 開発効率を重視し、警告レベルで運用
+
+build:
+  maxIssues: -1 # 無制限（警告のみなので）
+
+config:
+  validation: true
+  warningsAsErrors: false # 警告をエラー扱いしない
+  checkExhaustiveness: false
+
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true
+
+comments:
+  active: true
+  CommentOverPrivateFunction:
+    active: false # プライベート関数のコメント必須を無効化
+  CommentOverPrivateProperty:
+    active: false # プライベートプロパティのコメント必須を無効化
+  UndocumentedPublicClass:
+    active: false # パブリッククラスのコメント必須を無効化
+  UndocumentedPublicFunction:
+    active: false # パブリック関数のコメント必須を無効化
+
+complexity:
+  active: true
+  ComplexCondition:
+    threshold: 4
+  ComplexInterface:
+    threshold: 12
+  CyclomaticComplexMethod:
+    threshold: 15 # 複雑度を緩く設定
+  LongMethod:
+    threshold: 60 # メソッド長を緩く設定
+  LongParameterList:
+    functionThreshold: 8 # パラメータ数を緩く設定
+  NestedBlockDepth:
+    threshold: 4
+  TooManyFunctions:
+    thresholdInClasses: 15 # クラス内関数数を緩く設定
+
+coroutines:
+  active: true
+
+empty-blocks:
+  active: true
+
+exceptions:
+  active: true
+  TooGenericExceptionCaught:
+    active: false # Exception catch を許可（Ktorでよく使用）
+
+# formatting ruleset removed - using ktlint for formatting
+
+naming:
+  active: true
+  ClassNaming:
+    classPattern: '[A-Z][a-zA-Z0-9]*'
+  ConstructorParameterNaming:
+    parameterPattern: '[a-z][A-Za-z0-9]*'
+  EnumNaming:
+    enumEntryPattern: '[A-Z][_a-zA-Z0-9]*'
+  FunctionNaming:
+    functionPattern: '[a-z][a-zA-Z0-9]*'
+  PackageNaming:
+    packagePattern: '[a-z]+(\.[a-z][A-Za-z0-9]*)*'
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][_A-Z0-9]*'
+    propertyPattern: '[A-Za-z][_A-Za-z0-9]*'
+  VariableNaming:
+    variablePattern: '[a-z][A-Za-z0-9]*'
+
+performance:
+  active: true
+
+potential-bugs:
+  active: true
+  UnsafeCast:
+    active: false # 必要に応じてunsafe castを許可
+
+style:
+  active: true
+  MaxLineLength:
+    maxLineLength: 120 # 行長を120文字に設定
+  MagicNumber:
+    active: false # マジックナンバーチェックを無効化（設定値でよく使用）
+  ReturnCount:
+    max: 4 # return文の数を緩く設定
+  UnusedImports:
+    active: true # 未使用importは検出
+  WildcardImport:
+    active: false # wildcard importを許可

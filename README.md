@@ -144,6 +144,29 @@ curl http://localhost:8080/health  # 動作確認
 | `./gradlew build`       | 全体ビルド              |
 | `./gradlew buildFatJar` | 実行可能JAR作成（全依存関係含む） |
 | `./gradlew buildImage`  | Dockerイメージ作成       |
+| `./gradlew ktlintCheck` | コードスタイルチェック        |
+| `./gradlew ktlintFormat`| コードスタイル自動修正        |
+| `./gradlew detekt`      | 静的解析（警告のみ）         |
+
+### コード品質チェック
+
+プロジェクトでは ktlint と detekt による自動コード品質チェックを導入しています：
+
+#### 自動実行タイミング
+- Build時: `./gradlew build` 実行時にktlintCheck → エラーでビルド失敗
+
+#### 設定ポリシー
+- ktlint: コードスタイル違反時はビルド失敗（品質強制）
+- detekt: 静的解析結果は警告のみ（開発効率重視）
+
+#### エラー修正方法
+```bash
+# コードスタイルエラーを自動修正
+./gradlew ktlintFormat
+
+# 修正内容をステージング
+git add .
+```
 
 アプリケーション起動成功時のログ例:
 

@@ -11,23 +11,24 @@ import org.koin.dsl.module
  * Koinデータベースモジュール
  * データベース関連の依存関係を管理
  */
-val databaseModule = module {
-    // HikariDataSourceをApplication Attributesから取得
-    single<HikariDataSource> { 
-        val application = get<Application>()
-        application.attributes[HikariDataSourceKey]
+val databaseModule =
+    module {
+        // HikariDataSourceをApplication Attributesから取得
+        single<HikariDataSource> {
+            val application = get<Application>()
+            application.attributes[HikariDataSourceKey]
+        }
+
+        // Database instanceをsingletonとして登録
+        single<Database> {
+            Database.connect(get<HikariDataSource>())
+        }
+
+        // UserServiceをsingletonとして登録（Database依存）
+        single<UserService> {
+            UserService(
+                database = get<Database>(),
+                skipTableCreation = true,
+            )
+        }
     }
-    
-    // Database instanceをsingletonとして登録
-    single<Database> { 
-        Database.connect(get<HikariDataSource>())
-    }
-    
-    // UserServiceをsingletonとして登録（Database依存）
-    single<UserService> { 
-        UserService(
-            database = get<Database>(), 
-            skipTableCreation = true
-        )
-    }
-}

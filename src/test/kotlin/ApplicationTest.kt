@@ -8,24 +8,24 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ApplicationTest {
-
     @Test
-    fun testRoot() = testApplication {
-        environment {
-            config = MapApplicationConfig().apply {
-                // DB設定を追加
-                put("postgres.url", "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
-                put("postgres.user", "test")
-                put("postgres.password", "test")
-                put("database.migration_strategy", "none")
+    fun testRoot() =
+        testApplication {
+            environment {
+                config =
+                    MapApplicationConfig().apply {
+                        // DB設定を追加
+                        put("postgres.url", "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
+                        put("postgres.user", "test")
+                        put("postgres.password", "test")
+                        put("database.migration_strategy", "none")
+                    }
+            }
+            application {
+                module()
+            }
+            client.get("/").apply {
+                assertEquals(HttpStatusCode.OK, status)
             }
         }
-        application {
-            module()
-        }
-        client.get("/").apply {
-            assertEquals(HttpStatusCode.OK, status)
-        }
-    }
-
 }

@@ -11,8 +11,8 @@ import io.ktor.server.application.*
 import org.koin.ktor.ext.getKoin
 import org.koin.ktor.plugin.Koin
 import org.koin.ktor.plugin.KoinApplicationStarted
-import org.koin.ktor.plugin.KoinApplicationStopped
 import org.koin.ktor.plugin.KoinApplicationStopPreparing
+import org.koin.ktor.plugin.KoinApplicationStopped
 import org.koin.logger.slf4jLogger
 
 fun main(args: Array<String>) {
@@ -25,24 +25,24 @@ fun Application.module() {
         slf4jLogger()
         modules(applicationModules)
     }
-    
+
     // KoinにApplicationインスタンスを登録
     getKoin().declare(this)
-    
+
     // Koinライフサイクルイベント監視
-    environment.monitor.subscribe(KoinApplicationStarted) {
+    monitor.subscribe(KoinApplicationStarted) {
         log.info("🚀 Koin DI container started successfully")
         log.info("📦 Registered modules: ${applicationModules.size} modules")
     }
 
-    environment.monitor.subscribe(KoinApplicationStopPreparing) {
+    monitor.subscribe(KoinApplicationStopPreparing) {
         log.info("⏹️  Koin DI container stopping...")
     }
 
-    environment.monitor.subscribe(KoinApplicationStopped) {
+    monitor.subscribe(KoinApplicationStopped) {
         log.info("🛑 Koin DI container stopped successfully")
     }
-    
+
     configureMonitoring()
     configureHTTP()
     configureSerialization()
