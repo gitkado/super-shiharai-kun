@@ -52,4 +52,30 @@ class AuthServiceTest {
             assertNotNull(savedUser)
             assertEquals(email, savedUser.email)
         }
+
+    @Test
+    fun `authenticateUser - 正しい認証情報でログインできること`() =
+        runTest {
+            // Given: 事前にユーザーを登録
+            val companyName = "テスト株式会社"
+            val name = "田中太郎"
+            val email = Email("tanaka@test.com")
+            val rawPassword = "SecurePass123!"
+            val password = Password(rawPassword)
+            authService.registerUser(
+                companyName = companyName,
+                name = name,
+                email = email,
+                password = password,
+            )
+
+            // When: 正しい認証情報で認証
+            val result = authService.authenticateUser(email, rawPassword)
+
+            // Then: 認証が成功し、ユーザー情報が返される
+            assertNotNull(result)
+            assertEquals(companyName, result.companyName)
+            assertEquals(name, result.name)
+            assertEquals(email, result.email)
+        }
 }

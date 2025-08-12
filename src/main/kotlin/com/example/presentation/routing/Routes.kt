@@ -30,6 +30,9 @@ fun Application.configureRouting() {
             post("/register") {
                 authController.register(call)
             }
+            post("/login") {
+                authController.login(call)
+            }
         }
     }
 }

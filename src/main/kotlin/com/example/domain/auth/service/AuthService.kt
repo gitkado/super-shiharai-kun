@@ -30,4 +30,13 @@ class AuthService(private val userRepository: UserRepository) {
         val userId = userRepository.create(user)
         return userRepository.findById(userId)!!
     }
+
+    suspend fun authenticateUser(
+        email: Email,
+        rawPassword: String,
+    ): User? {
+        val user = userRepository.findByEmail(email) ?: return null
+
+        return if (user.password.verify(rawPassword)) user else null
+    }
 }

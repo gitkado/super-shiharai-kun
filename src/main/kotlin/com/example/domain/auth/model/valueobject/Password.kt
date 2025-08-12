@@ -24,6 +24,14 @@ data class Password private constructor(val value: String, private val isHashed:
         return Password(hashedValue, true)
     }
 
+    // 生パスワードが、このハッシュ済みパスワードと一致するかを検証
+    fun verify(rawPassword: String): Boolean {
+        if (!isHashed) {
+            return false // ハッシュ済みでない場合は検証不可
+        }
+        return BCrypt.verifyer().verify(rawPassword.toCharArray(), value).verified
+    }
+
     companion object {
         // ハッシュ済みパスワード用のファクトリメソッド（バリデーションなし）
         fun fromHashed(hashedPassword: String): Password {

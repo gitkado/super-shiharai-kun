@@ -309,8 +309,23 @@ data class Password private constructor(val value: String, private val isHashed:
 - ハッシュ化: BCryptラウンド12を使用
 - 生パスワード保護: Password Value Objectで平文パスワードを隠蔽
 
-### API仕様
-- POST /v1/auth/register: ユーザー登録
-  - バリデーション: Email/Password Value Objectsによる型安全な検証
-  - 重複チェック: メールアドレスの一意性保証
-  - パスワードハッシュ化: 保存前の自動ハッシュ化
+### 認証システム仕様
+
+#### 提供機能
+- ユーザー登録: 企業ユーザーの新規登録（`POST /v1/auth/register`）
+- ユーザーログイン: JWT認証による認証システム（`POST /v1/auth/login`）
+- バリデーション: Email/Password Value Objectsによる型安全な検証
+- セキュリティ: BCrypt(ラウンド12)によるパスワードハッシュ化
+
+### JWT認証仕様
+
+トークン形式:
+- アルゴリズム: HMAC256
+- 有効期限: 24時間（86400秒）
+- ペイロード: ユーザーID、メール、名前、会社名
+- 使用方法: `Authorization: Bearer <token>` ヘッダーで送信
+
+注意事項:
+- リフレッシュトークンは現在未実装（将来的な改善課題）
+- トークンは安全に保管し、第三者に漏洩しないよう注意
+- トークン有効期限切れの場合は再ログインが必要

@@ -24,8 +24,8 @@ class ApplicationTest {
             application {
                 module()
             }
-            client.get("/").apply {
-                assertEquals(HttpStatusCode.OK, status)
+            client.get("/v1/auth/register").apply {
+                assertEquals(HttpStatusCode.MethodNotAllowed, status)
             }
         }
 }
