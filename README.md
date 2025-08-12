@@ -94,9 +94,52 @@ docker compose -f docker/compose.integration.yaml up --build -d
 ./gradlew test
 ```
 
-- データベース: H2 インメモリDB
-- テーブル作成: なし (`migration_strategy: none`)
-- 利点: 高速、外部依存なし、CIで安定動作
+- データベース: FakeRepository（インメモリテストダブル）
+- テーブル作成: なし
+- 利点: 高速、外部依存なし、CIで安定動作、ピュアなユニットテスト
+
+## テスト方針
+
+### 基本方針
+- アウトサイドインなテスト方針を採用
+- サービスの関数ごとにテストを実装
+- 最低限の振る舞い担保として正常系1本のみの実装でスタート
+
+### テスト構成
+- FakeRepository等は`test/.../service/fixture/`に作成してテストダブルとして利用
+- Given-When-Thenパターンを厳密に適用
+- データベースに依存しないインメモリテストを基本とする
+- ExposedとのORM結合まで担保する必要が出てきた場合はH2インメモリDBを使用した統合テストに切り替え可能
+
+### テストケースの命名規則
+```kotlin
+@Test
+fun `[関数名] - [テストケースの説明]`() = runTest {
+    // Given: 前提条件
+    
+    // When: 実行
+    
+    // Then: 検証
+}
+```
+
+### 例: AuthServiceTest
+```kotlin
+class AuthServiceTest {
+    private val userRepository = FakeUserRepository()
+    private val authService = AuthService(userRepository)
+
+    @BeforeTest
+    fun setUp() {
+        userRepository.clear()
+    }
+
+    @Test
+    fun `registerUser - サービス利用するための自身のユーザを登録できること`() = runTest {
+        // Given-When-Thenパターンで正常系テスト実装
+        // 最低限の振る舞い担保として1本のみ
+    }
+}
 
 ## 環境設定・マイグレーション戦略
 
@@ -180,33 +223,38 @@ git add .
 レイヤードアーキテクチャパターンに従い、関心事の分離を明確にした構成:
 
 ```
-src/main/kotlin/com/example/
-├── Application.kt                    # アプリケーションエントリーポイント
-├── config/                          # 設定レイヤー
-│   ├── database/                    # データベース接続設定
-│   ├── di/                          # Koin依存性注入設定
-│   ├── security/                    # JWT認証設定
-│   ├── http/                        # CORS・HTTP設定
-│   ├── monitoring/                  # ログ・監視設定
-│   └── serialization/               # JSONシリアライゼーション設定
-├── domain/                          # ドメインレイヤー（ビジネスロジック）
-│   ├── model/                       # ドメインエンティティ
-│   ├── repository/                  # リポジトリインターフェース
-│   ├── service/                     # ビジネスロジックサービス
-│   ├── constants/                   # ビジネス定数・ルール
-│   └── exception/                   # ビジネス例外
-├── infrastructure/                  # インフラストラクチャレイヤー
-│   ├── database/                    # データベース実装
-│   │   ├── schema/                  # テーブル定義・ORM
-│   │   └── repository/              # リポジトリ実装
-│   └── security/                    # セキュリティ実装
-├── presentation/                    # プレゼンテーションレイヤー（API）
-│   ├── dto/                        # データ転送オブジェクト
-│   │   ├── request/                # リクエストDTO
-│   │   └── response/               # レスポンスDTO
-│   ├── controller/                 # RESTコントローラー
-│   └── routing/                    # ルート定義
-└── util/                           # 技術的ユーティリティ関数
+src/
+├── main/kotlin/com/example/
+│   ├── Application.kt                    # アプリケーションエントリーポイント
+│   ├── config/                          # 設定レイヤー
+│   │   ├── database/                    # データベース接続設定
+│   │   ├── di/                          # Koin依存性注入設定
+│   │   └── http/                        # CORS・HTTP設定
+│   ├── domain/                          # ドメインレイヤー（ビジネスロジック）
+│   │   ├── auth/                        # 認証ドメイン
+│   │   │   ├── model/                   # User等のエンティティ
+│   │   │   │   └── valueobject/         # Email, Password等
+│   │   │   ├── repository/              # リポジトリインターフェース
+│   │   │   └── service/                 # AuthService等
+│   │   └── payable/                     # 支払い管理ドメイン
+│   ├── infrastructure/                  # インフラストラクチャレイヤー
+│   │   └── database/
+│   │       ├── repository/              # UserRepositoryImpl等
+│   │       └── schema/                  # UsersTable等
+│   │           └── customtypes/         # CitextColumnType等
+│   └── presentation/                    # プレゼンテーションレイヤー（API）
+│       ├── controller/                  # AuthController等
+│       ├── dto/                        # データ転送オブジェクト
+│       │   ├── request/                # RegisterRequest等
+│       │   └── response/               # RegisterResponse, ErrorResponse等
+│       ├── routing/                    # Routes.kt
+│       └── validation/                 # RegisterValidation等
+└── test/kotlin/com/example/
+    └── domain/
+        └── auth/
+            └── service/
+                ├── fixture/             # FakeUserRepository等
+                └── AuthServiceTest.kt   # サービス単位のテスト
 ```
 
 ### レイヤー責任
@@ -215,4 +263,54 @@ src/main/kotlin/com/example/
 - インフラストラクチャレイヤー: データベースアクセス・外部サービス等の技術的関心事を実装
 - プレゼンテーションレイヤー: HTTPリクエスト/レスポンス処理・APIコントラクトを担当
 - 設定レイヤー: アプリケーション設定・フレームワーク設定を管理
-- ユーティリティレイヤー: 技術的なヘルパー関数・拡張関数を提供
+
+### Value Objectsパターンの活用
+
+プロジェクトではドメイン駆動設計のValue Objectsパターンを採用し、型安全性とバリデーションの集約を実現:
+
+#### Email Value Object
+```kotlin
+data class Email(val value: String) {
+    init {
+        require(value.isNotBlank()) { "Email address must not be blank" }
+        require(isValidEmailFormat(value)) { "Invalid email format" }
+    }
+}
+```
+
+#### Password Value Object
+```kotlin
+data class Password private constructor(val value: String, private val isHashed: Boolean = false) {
+    // 生パスワード用コンストラクタ（バリデーション付き）
+    constructor(rawPassword: String) : this(rawPassword, false) {
+        require(rawPassword.length >= 8) { "Password must be at least 8 characters" }
+        require(isValidPasswordComplexity(rawPassword)) { "Password complexity requirements not met" }
+    }
+    
+    // ハッシュ化メソッド
+    fun hash(): Password = Password(BCrypt.hash(value), true)
+    
+    companion object {
+        fun fromHashed(hashedPassword: String): Password = Password(hashedPassword, true)
+    }
+}
+```
+
+#### メリット
+- 型安全性: プリミティブ型の代わりにドメイン固有の型を使用
+- バリデーションの集約: ビジネスルールをValue Object内に集約
+- 不正データの排除: 無効な値のオブジェクト作成を防止
+- ドメイン表現力向上: コードがビジネス要求を明確に表現
+
+## 🔐 セキュリティ
+
+### パスワード管理
+- 複雑性要件: 8-128文字、大文字・小文字・数字・記号の3カテゴリ以上
+- ハッシュ化: BCryptラウンド12を使用
+- 生パスワード保護: Password Value Objectで平文パスワードを隠蔽
+
+### API仕様
+- POST /v1/auth/register: ユーザー登録
+  - バリデーション: Email/Password Value Objectsによる型安全な検証
+  - 重複チェック: メールアドレスの一意性保証
+  - パスワードハッシュ化: 保存前の自動ハッシュ化
