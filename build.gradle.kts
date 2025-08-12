@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.h2)
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.javatime)
     implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.host.common)
     implementation(libs.ktor.server.status.pages)

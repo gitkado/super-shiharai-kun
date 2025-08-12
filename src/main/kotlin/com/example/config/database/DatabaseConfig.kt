@@ -1,6 +1,6 @@
 package com.example.config.database
 
-import com.example.infrastructure.database.schema.Users
+import com.example.infrastructure.database.schema.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
@@ -81,7 +81,7 @@ fun Application.configureDatabases() {
                 // 全テーブルを配列で管理
                 val tables =
                     arrayOf(
-                        Users,
+                        UsersTable,
                         // 新しいテーブルはここに追加
                     )
                 SchemaUtils.createMissingTablesAndColumns(*tables)

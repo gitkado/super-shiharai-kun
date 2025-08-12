@@ -1,6 +1,6 @@
 package com.example.presentation.routing
 
-import com.example.infrastructure.database.schema.UserService
+import com.example.domain.auth.repository.UserRepository
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.requestvalidation.*
@@ -25,8 +25,8 @@ fun Application.configureRouting() {
         }
     }
 
-    // UserServiceをKoinから注入
-    val userService by inject<UserService>()
+    // UserRepositoryをKoinから注入
+    val userRepository by inject<UserRepository>()
 
     routing {
         get("/") {
@@ -34,8 +34,8 @@ fun Application.configureRouting() {
         }
 
         get("/health") {
-            // UserServiceがKoinで正しく注入されているかテスト
-            val serviceInfo = "UserService injected via Koin DI: ${userService::class.simpleName}"
+            // UserRepositoryがKoinで正しく注入されているかテスト
+            val serviceInfo = "UserRepository: ${userRepository::class.simpleName}"
             call.respondText(serviceInfo)
         }
     }

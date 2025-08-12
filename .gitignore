@@ -37,3 +37,6 @@ out/
 
 ### Serena Cache ###
 .serena/
+
+### Docker ###
+docker/postgres/data

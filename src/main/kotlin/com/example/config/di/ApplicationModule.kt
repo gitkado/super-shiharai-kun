@@ -19,8 +19,9 @@ val applicationModules =
     listOf(
         coreModule,
         databaseModule,
+        authModule,
         // 将来のモジュール追加:
+        // - payableModule (支払いドメイン)
         // - serviceModule (ビジネスロジック層)
-        // - repositoryModule (データアクセス層)
         // - controllerModule (プレゼンテーション層)
     )
