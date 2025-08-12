@@ -1,6 +1,8 @@
 package com.example.infrastructure.database.repository
 
 import com.example.domain.auth.model.User
+import com.example.domain.auth.model.valueobject.Email
+import com.example.domain.auth.model.valueobject.Password
 import com.example.domain.auth.repository.UserRepository
 import com.example.infrastructure.database.schema.UsersTable
 import kotlinx.coroutines.Dispatchers
@@ -16,8 +18,8 @@ class UserRepositoryImpl(private val database: Database) : UserRepository {
             UsersTable.insert {
                 it[companyName] = user.companyName
                 it[name] = user.name
-                it[email] = user.email
-                it[password] = user.password
+                it[email] = user.email.value
+                it[password] = user.password.value
                 it[createdAt] = now
                 it[updatedAt] = now
             }[UsersTable.id].value
@@ -31,10 +33,10 @@ class UserRepositoryImpl(private val database: Database) : UserRepository {
                 .singleOrNull()
         }
 
-    override suspend fun findByEmail(email: String): User? =
+    override suspend fun findByEmail(email: Email): User? =
         dbQuery {
             UsersTable.selectAll()
-                .where { UsersTable.email eq email }
+                .where { UsersTable.email eq email.value }
                 .map { it.toUser() }
                 .singleOrNull()
         }
@@ -46,8 +48,8 @@ class UserRepositoryImpl(private val database: Database) : UserRepository {
         UsersTable.update({ UsersTable.id eq id }) {
             it[companyName] = user.companyName
             it[name] = user.name
-            it[email] = user.email
-            it[password] = user.password
+            it[email] = user.email.value
+            it[password] = user.password.value
             it[updatedAt] = OffsetDateTime.now()
         }
         Unit
@@ -64,8 +66,8 @@ class UserRepositoryImpl(private val database: Database) : UserRepository {
             id = this[UsersTable.id].value,
             companyName = this[UsersTable.companyName],
             name = this[UsersTable.name],
-            email = this[UsersTable.email],
-            password = this[UsersTable.password],
+            email = Email(this[UsersTable.email]),
+            password = Password.fromHashed(this[UsersTable.password]),
             createdAt = this[UsersTable.createdAt],
             updatedAt = this[UsersTable.updatedAt],
         )
