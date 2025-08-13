@@ -20,8 +20,5 @@ val applicationModules =
         coreModule,
         databaseModule,
         authModule,
-        // 将来のモジュール追加:
-        // - payableModule (支払いドメイン)
-        // - serviceModule (ビジネスロジック層)
-        // - controllerModule (プレゼンテーション層)
+        payableModule,
     )
