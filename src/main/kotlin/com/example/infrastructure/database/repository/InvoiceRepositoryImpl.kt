@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.time.LocalDate
 import java.time.OffsetDateTime
 
 class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository {
@@ -45,6 +46,28 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
         dbQuery {
             InvoicesTable.selectAll()
                 .where { InvoicesTable.userId.eq(userId) }
+                .map { it.toInvoice() }
+        }
+
+    override suspend fun findByUserIdWithDateRange(
+        userId: Long,
+        paymentDueFrom: LocalDate?,
+        paymentDueTo: LocalDate?,
+    ): List<Invoice> =
+        dbQuery {
+            var query =
+                InvoicesTable.selectAll()
+                    .where { InvoicesTable.userId.eq(userId) }
+
+            paymentDueFrom?.let {
+                query = query.andWhere { InvoicesTable.paymentDueDate.greaterEq(it) }
+            }
+
+            paymentDueTo?.let {
+                query = query.andWhere { InvoicesTable.paymentDueDate.lessEq(it) }
+            }
+
+            query.orderBy(InvoicesTable.paymentDueDate to SortOrder.ASC, InvoicesTable.issueDate to SortOrder.ASC)
                 .map { it.toInvoice() }
         }
 

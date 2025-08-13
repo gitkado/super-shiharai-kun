@@ -37,3 +37,7 @@ fun Invoice.toInvoiceResponse(): InvoiceResponse {
         updatedAt = this.updatedAt!!,
     )
 }
+
+fun List<Invoice>.toInvoiceResponseList(): List<InvoiceResponse> {
+    return this.map { it.toInvoiceResponse() }
+}

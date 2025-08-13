@@ -36,4 +36,17 @@ class InvoiceService(private val invoiceRepository: InvoiceRepository) {
 
         return invoiceRepository.create(invoice)
     }
+
+    suspend fun getInvoices(
+        userId: Long,
+        paymentDueFrom: LocalDate? = null,
+        paymentDueTo: LocalDate? = null,
+    ): List<Invoice> {
+        // ビジネスルール: paymentDueFromはpaymentDueTo以前である必要がある
+        if (paymentDueFrom != null && paymentDueTo != null) {
+            require(paymentDueFrom <= paymentDueTo) { "paymentDueFrom must be before or equal to paymentDueTo" }
+        }
+
+        return invoiceRepository.findByUserIdWithDateRange(userId, paymentDueFrom, paymentDueTo)
+    }
 }
