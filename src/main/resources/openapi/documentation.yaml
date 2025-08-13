@@ -1,7 +1,7 @@
 openapi: "3.0.3"
 info:
   title: "スーパー支払い君 API"
-  description: "支払い管理システムのREST API"
+  description: "支払い管理システムのREST API。JWT認証による安全な請求書管理機能を提供します。手数料4%と手数料に対する消費税10%が自動計算されます。"
   version: "1.0.0"
 servers:
   - url: "http://localhost:8080"
@@ -33,7 +33,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RegisterResponse"
+                $ref: "#/components/schemas/RegisterAuthResponse"
               examples:
                 success:
                   value:
@@ -112,6 +112,74 @@ paths:
                       - field: "credentials"
                         message: "Invalid email or password"
 
+  /v1/payable/invoices:
+    post:
+      tags:
+        - "Invoice"
+      summary: "請求書登録"
+      description: "新しい請求書を登録します。手数料4%と手数料に対する消費税10%が自動計算されます。認証が必要です。"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInvoiceRequest"
+            examples:
+              example:
+                value:
+                  issueDate: "2024-01-15"
+                  paymentAmount: 10000.00
+                  paymentDueDate: "2024-02-15"
+      responses:
+        "201":
+          description: "請求書登録成功"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceResponse"
+              examples:
+                success:
+                  value:
+                    id: 1
+                    issueDate: "2024-01-15"
+                    paymentAmount: 10000.00
+                    fee: 400.00
+                    feeRate: 0.04
+                    taxAmount: 40.00
+                    taxRate: 0.10
+                    totalAmount: 10440.00
+                    paymentDueDate: "2024-02-15"
+                    createdAt: "2024-01-15T10:00:00+09:00"
+                    updatedAt: "2024-01-15T10:00:00+09:00"
+        "400":
+          description: "バリデーションエラー"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                validation_error:
+                  value:
+                    errors:
+                      - field: "paymentAmount"
+                        message: "Payment amount must be positive"
+                      - field: "paymentDueDate"
+                        message: "Payment due date must not be before issue date"
+        "401":
+          description: "認証エラー"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                auth_error:
+                  value:
+                    errors:
+                      - field: "auth"
+                        message: "Invalid token"
+
 components:
   schemas:
     RegisterRequest:
@@ -141,7 +209,7 @@ components:
           description: "パスワード（8文字以上）"
           example: "SecurePass123!"
 
-    RegisterResponse:
+    RegisterAuthResponse:
       type: object
       properties:
         id:
@@ -223,12 +291,94 @@ components:
           description: "エラーメッセージ"
           example: "Invalid email format"
 
+    RegisterInvoiceRequest:
+      type: object
+      required:
+        - issueDate
+        - paymentAmount
+        - paymentDueDate
+      properties:
+        issueDate:
+          type: string
+          format: date
+          description: "発行日"
+          example: "2024-01-15"
+        paymentAmount:
+          type: number
+          format: decimal
+          description: "支払金額"
+          example: 10000.00
+        paymentDueDate:
+          type: string
+          format: date
+          description: "支払期日"
+          example: "2024-02-15"
+
+    InvoiceResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "請求書ID"
+          example: 1
+        issueDate:
+          type: string
+          format: date
+          description: "発行日"
+          example: "2024-01-15"
+        paymentAmount:
+          type: number
+          format: decimal
+          description: "支払金額"
+          example: 10000.00
+        fee:
+          type: number
+          format: decimal
+          description: "手数料（支払金額の4%）"
+          example: 400.00
+        feeRate:
+          type: number
+          format: decimal
+          description: "手数料率"
+          example: 0.04
+        taxAmount:
+          type: number
+          format: decimal
+          description: "消費税（手数料の10%）"
+          example: 40.00
+        taxRate:
+          type: number
+          format: decimal
+          description: "消費税率"
+          example: 0.10
+        totalAmount:
+          type: number
+          format: decimal
+          description: "請求金額（支払金額+手数料+消費税）"
+          example: 10440.00
+        paymentDueDate:
+          type: string
+          format: date
+          description: "支払期日"
+          example: "2024-02-15"
+        createdAt:
+          type: string
+          format: date-time
+          description: "作成日時"
+          example: "2024-01-15T10:00:00+09:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "更新日時"
+          example: "2024-01-15T10:00:00+09:00"
+
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: "JWT Bearer認証"
+      description: "JWT Bearer認証。ログインエンドポイントで取得したアクセストークンをAuthorizationヘッダーに'Bearer {token}'の形式で指定してください。"
 
 security:
   - bearerAuth: []

@@ -2,10 +2,12 @@ package com.example.presentation.routing
 
 import com.example.config.isDevelopmentMode
 import com.example.presentation.controller.AuthController
+import com.example.presentation.controller.InvoiceController
 import com.example.presentation.dto.response.ErrorResponse
 import com.example.presentation.dto.response.ValidationError
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.plugins.swagger.*
 import io.ktor.server.response.*
@@ -26,6 +28,7 @@ fun Application.configureRouting() {
         }
     }
     val authController by inject<AuthController>()
+    val invoiceController by inject<InvoiceController>()
 
     routing {
         // Swagger UI エンドポイント（設定で有効化されている場合のみ）
@@ -38,7 +41,15 @@ fun Application.configureRouting() {
                 authController.register(call)
             }
             post("/login") {
-                authController.login(call)
+                authController.login(call, environment.config)
+            }
+        }
+
+        authenticate("auth-jwt") {
+            route("/v1/payable") {
+                post("/invoices") {
+                    invoiceController.registerInvoice(call)
+                }
             }
         }
     }

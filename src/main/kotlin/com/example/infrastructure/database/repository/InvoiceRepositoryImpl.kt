@@ -1,6 +1,8 @@
 package com.example.infrastructure.database.repository
 
 import com.example.domain.payable.model.Invoice
+import com.example.domain.payable.model.valueobject.Money
+import com.example.domain.payable.model.valueobject.Rate
 import com.example.domain.payable.repository.InvoiceRepository
 import com.example.infrastructure.database.schema.InvoicesTable
 import kotlinx.coroutines.Dispatchers
@@ -17,12 +19,12 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
                 InvoicesTable.insert {
                     it[userId] = invoice.userId
                     it[issueDate] = invoice.issueDate
-                    it[paymentAmount] = invoice.paymentAmount
-                    it[fee] = invoice.fee
-                    it[feeRate] = invoice.feeRate
-                    it[taxAmount] = invoice.taxAmount
-                    it[taxRate] = invoice.taxRate
-                    it[totalAmount] = invoice.totalAmount
+                    it[paymentAmount] = invoice.paymentAmount.amount
+                    it[fee] = invoice.fee.amount
+                    it[feeRate] = invoice.feeRate.value
+                    it[taxAmount] = invoice.taxAmount.amount
+                    it[taxRate] = invoice.taxRate.value
+                    it[totalAmount] = invoice.totalAmount.amount
                     it[paymentDueDate] = invoice.paymentDueDate
                     it[createdAt] = now
                     it[updatedAt] = now
@@ -53,12 +55,12 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
                 InvoicesTable.update({ InvoicesTable.id.eq(id) }) {
                     it[userId] = invoice.userId
                     it[issueDate] = invoice.issueDate
-                    it[paymentAmount] = invoice.paymentAmount
-                    it[fee] = invoice.fee
-                    it[feeRate] = invoice.feeRate
-                    it[taxAmount] = invoice.taxAmount
-                    it[taxRate] = invoice.taxRate
-                    it[totalAmount] = invoice.totalAmount
+                    it[paymentAmount] = invoice.paymentAmount.amount
+                    it[fee] = invoice.fee.amount
+                    it[feeRate] = invoice.feeRate.value
+                    it[taxAmount] = invoice.taxAmount.amount
+                    it[taxRate] = invoice.taxRate.value
+                    it[totalAmount] = invoice.totalAmount.amount
                     it[paymentDueDate] = invoice.paymentDueDate
                     it[updatedAt] = OffsetDateTime.now()
                 }
@@ -81,12 +83,12 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
             id = this[InvoicesTable.id].value,
             userId = this[InvoicesTable.userId].value,
             issueDate = this[InvoicesTable.issueDate],
-            paymentAmount = this[InvoicesTable.paymentAmount],
-            fee = this[InvoicesTable.fee],
-            feeRate = this[InvoicesTable.feeRate],
-            taxAmount = this[InvoicesTable.taxAmount],
-            taxRate = this[InvoicesTable.taxRate],
-            totalAmount = this[InvoicesTable.totalAmount],
+            paymentAmount = Money.of(this[InvoicesTable.paymentAmount]),
+            fee = Money.of(this[InvoicesTable.fee]),
+            feeRate = Rate(this[InvoicesTable.feeRate]),
+            taxAmount = Money.of(this[InvoicesTable.taxAmount]),
+            taxRate = Rate(this[InvoicesTable.taxRate]),
+            totalAmount = Money.of(this[InvoicesTable.totalAmount]),
             paymentDueDate = this[InvoicesTable.paymentDueDate],
             createdAt = this[InvoicesTable.createdAt],
             updatedAt = this[InvoicesTable.updatedAt],

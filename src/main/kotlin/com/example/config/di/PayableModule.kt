@@ -1,7 +1,9 @@
 package com.example.config.di
 
 import com.example.domain.payable.repository.InvoiceRepository
+import com.example.domain.payable.service.InvoiceService
 import com.example.infrastructure.database.repository.InvoiceRepositoryImpl
+import com.example.presentation.controller.InvoiceController
 import org.jetbrains.exposed.sql.Database
 import org.koin.dsl.module
 
@@ -11,4 +13,6 @@ import org.koin.dsl.module
 val payableModule =
     module {
         single<InvoiceRepository> { InvoiceRepositoryImpl(get<Database>()) }
+        single { InvoiceService(get<InvoiceRepository>()) }
+        single { InvoiceController(get<InvoiceService>()) }
     }

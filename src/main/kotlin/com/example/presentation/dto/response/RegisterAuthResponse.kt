@@ -4,7 +4,7 @@ import com.example.domain.auth.model.User
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class RegisterResponse(
+data class RegisterAuthResponse(
     val id: Long,
     val companyName: String,
     val name: String,
@@ -12,8 +12,8 @@ data class RegisterResponse(
     val createdAt: String,
 )
 
-fun User.toRegisterResponse(): RegisterResponse {
-    return RegisterResponse(
+fun User.toRegisterResponse(): RegisterAuthResponse {
+    return RegisterAuthResponse(
         id = this.id!!,
         companyName = this.companyName,
         name = this.name,
