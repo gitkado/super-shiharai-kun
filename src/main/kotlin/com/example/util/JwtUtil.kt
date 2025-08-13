@@ -12,9 +12,6 @@ import java.util.*
  * TODO: リフレッシュトークンを採用するのがベストだが現状は積み残しとする
  */
 object JwtUtil {
-    private const val JWT_SECRET = "secret"
-    private const val JWT_AUDIENCE = "jwt-audience"
-    private const val JWT_DOMAIN = "https://jwt-provider-domain/"
     const val JWT_EXPIRATION_SECONDS = 24 * 60 * 60L // 24 hours in seconds
     private const val JWT_EXPIRATION_MS = JWT_EXPIRATION_SECONDS * 1000L
     const val USER_ID_CLAIM = "userId"
@@ -22,16 +19,21 @@ object JwtUtil {
     const val NAME_CLAIM = "name"
     const val COMPANY_NAME_CLAIM = "companyName"
 
-    fun generateToken(user: User): String {
+    fun generateToken(
+        user: User,
+        jwtSecret: String,
+        jwtAudience: String,
+        jwtDomain: String,
+    ): String {
         return JWT.create()
-            .withAudience(JWT_AUDIENCE)
-            .withIssuer(JWT_DOMAIN)
+            .withAudience(jwtAudience)
+            .withIssuer(jwtDomain)
             .withSubject((user.id ?: 0).toString())
             .withClaim(USER_ID_CLAIM, user.id ?: 0)
             .withClaim(EMAIL_CLAIM, user.email.value)
             .withClaim(NAME_CLAIM, user.name)
             .withClaim(COMPANY_NAME_CLAIM, user.companyName)
             .withExpiresAt(Date(System.currentTimeMillis() + JWT_EXPIRATION_MS))
-            .sign(Algorithm.HMAC256(JWT_SECRET))
+            .sign(Algorithm.HMAC256(jwtSecret))
     }
 }

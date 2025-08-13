@@ -140,19 +140,20 @@ class AuthServiceTest {
         // 最低限の振る舞い担保として1本のみ
     }
 }
+```
 
 ## 環境設定・マイグレーション戦略
 
 ### 環境変数
 
-| 変数名                           | デフォルト値                                                | 説明         |
-|-------------------------------|-------------------------------------------------------|------------|
+| 変数名                           | デフォルト値                                                | 説明           |
+|-------------------------------|-------------------------------------------------------|--------------|
 | `APP_DEVELOPMENT`             | `true`                                                | 開発モード有効/無効制御 |
-| `DATABASE_MIGRATION_STRATEGY` | `exposed`                                             | マイグレーション方法 |
-| `POSTGRES_URL`                | `jdbc:postgresql://localhost:5432/super_shiharai_kun` | DB接続URL    |
-| `POSTGRES_USER`               | `myuser`                                              | DBユーザー名    |
-| `POSTGRES_PASSWORD`           | `mypassword`                                          | DBパスワード    |
-| `JAVA_OPTS`                   | `-XX:+UseContainerSupport`                            | JVMオプション   |
+| `DATABASE_MIGRATION_STRATEGY` | `exposed`                                             | マイグレーション方法   |
+| `POSTGRES_URL`                | `jdbc:postgresql://localhost:5432/super_shiharai_kun` | DB接続URL      |
+| `POSTGRES_USER`               | `myuser`                                              | DBユーザー名      |
+| `POSTGRES_PASSWORD`           | `mypassword`                                          | DBパスワード      |
+| `JAVA_OPTS`                   | `-XX:+UseContainerSupport`                            | JVMオプション     |
 
 ### マイグレーション戦略の使い分け
 
@@ -181,16 +182,16 @@ curl http://localhost:8080/health  # 動作確認
 
 プロジェクトのビルドと実行に使用するGradleタスク:
 
-| タスク                     | 説明                 |
-|-------------------------|--------------------|
-| `./gradlew test`        | テスト実行（H2インメモリDB使用） |
-| `./gradlew run`         | ローカル開発サーバー起動       |
-| `./gradlew build`       | 全体ビルド              |
-| `./gradlew buildFatJar` | 実行可能JAR作成（全依存関係含む） |
-| `./gradlew buildImage`  | Dockerイメージ作成       |
-| `./gradlew ktlintCheck` | コードスタイルチェック        |
-| `./gradlew ktlintFormat`| コードスタイル自動修正        |
-| `./gradlew detekt`      | 静的解析（警告のみ）         |
+| タスク                      | 説明                 |
+|--------------------------|--------------------|
+| `./gradlew test`         | テスト実行（H2インメモリDB使用） |
+| `./gradlew run`          | ローカル開発サーバー起動       |
+| `./gradlew build`        | 全体ビルド              |
+| `./gradlew buildFatJar`  | 実行可能JAR作成（全依存関係含む） |
+| `./gradlew buildImage`   | Dockerイメージ作成       |
+| `./gradlew ktlintCheck`  | コードスタイルチェック        |
+| `./gradlew ktlintFormat` | コードスタイル自動修正        |
+| `./gradlew detekt`       | 静的解析（警告のみ）         |
 
 ### コード品質チェック
 
