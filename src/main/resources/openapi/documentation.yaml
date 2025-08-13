@@ -1,23 +1,234 @@
 openapi: "3.0.3"
 info:
-  title: "Application API"
-  description: "Application API"
+  title: "スーパー支払い君 API"
+  description: "支払い管理システムのREST API"
   version: "1.0.0"
 servers:
-  - url: "http://0.0.0.0:8080"
+  - url: "http://localhost:8080"
+    description: "Development server"
+
 paths:
-  /:
-    get:
-      description: "Hello World!"
+  /v1/auth/register:
+    post:
+      tags:
+        - "Authentication"
+      summary: "ユーザー登録"
+      description: "新しい企業ユーザーを登録します"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+            examples:
+              example:
+                value:
+                  companyName: "株式会社サンプル"
+                  name: "山田太郎"
+                  email: "yamada@sample.com"
+                  password: "SecurePass123!"
+      responses:
+        "201":
+          description: "ユーザー登録成功"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+              examples:
+                success:
+                  value:
+                    id: 1
+                    companyName: "株式会社サンプル"
+                    name: "山田太郎"
+                    email: "yamada@sample.com"
+                    createdAt: "2024-01-01T00:00:00Z"
+        "400":
+          description: "バリデーションエラー"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                validation_error:
+                  value:
+                    errors:
+                      - field: "email"
+                        message: "Invalid email format"
+                      - field: "password"
+                        message: "Password must be at least 8 characters"
+
+  /v1/auth/login:
+    post:
+      tags:
+        - "Authentication"
+      summary: "ユーザーログイン"
+      description: "メールアドレスとパスワードでログインし、JWTアクセストークンを取得します"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              example:
+                value:
+                  email: "yamada@sample.com"
+                  password: "SecurePass123!"
       responses:
         "200":
-          description: "OK"
+          description: "ログイン成功"
           content:
-            text/plain:
+            application/json:
               schema:
-                type: "string"
+                $ref: "#/components/schemas/LoginResponse"
               examples:
-                Example#1:
-                  value: "Hello World!"
+                success:
+                  value:
+                    accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    tokenType: "Bearer"
+                    expiresIn: 86400
+        "400":
+          description: "バリデーションエラー"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                validation_error:
+                  value:
+                    errors:
+                      - field: "email"
+                        message: "Invalid email format"
+        "401":
+          description: "認証エラー"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                auth_error:
+                  value:
+                    errors:
+                      - field: "credentials"
+                        message: "Invalid email or password"
+
 components:
-  schemas: {}
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - companyName
+        - name
+        - email
+        - password
+      properties:
+        companyName:
+          type: string
+          description: "会社名"
+          example: "株式会社サンプル"
+        name:
+          type: string
+          description: "ユーザー名"
+          example: "山田太郎"
+        email:
+          type: string
+          format: email
+          description: "メールアドレス"
+          example: "yamada@sample.com"
+        password:
+          type: string
+          format: password
+          description: "パスワード（8文字以上）"
+          example: "SecurePass123!"
+
+    RegisterResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "ユーザーID"
+          example: 1
+        companyName:
+          type: string
+          description: "会社名"
+          example: "株式会社サンプル"
+        name:
+          type: string
+          description: "ユーザー名"
+          example: "山田太郎"
+        email:
+          type: string
+          format: email
+          description: "メールアドレス"
+          example: "yamada@sample.com"
+        createdAt:
+          type: string
+          format: date-time
+          description: "作成日時"
+          example: "2024-01-01T00:00:00Z"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: "メールアドレス"
+          example: "yamada@sample.com"
+        password:
+          type: string
+          format: password
+          description: "パスワード"
+          example: "SecurePass123!"
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: "JWTアクセストークン"
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        tokenType:
+          type: string
+          description: "トークンタイプ"
+          example: "Bearer"
+          default: "Bearer"
+        expiresIn:
+          type: integer
+          format: int64
+          description: "トークンの有効期限（秒）"
+          example: 86400
+
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationError"
+
+    ValidationError:
+      type: object
+      properties:
+        field:
+          type: string
+          description: "エラーが発生したフィールド名"
+          example: "email"
+        message:
+          type: string
+          description: "エラーメッセージ"
+          example: "Invalid email format"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT Bearer認証"
+
+security:
+  - bearerAuth: []

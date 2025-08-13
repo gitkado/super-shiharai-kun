@@ -147,6 +147,7 @@ class AuthServiceTest {
 
 | 変数名                           | デフォルト値                                                | 説明         |
 |-------------------------------|-------------------------------------------------------|------------|
+| `SWAGGER_ENABLED`             | `true`                                                | Swagger UI有効/無効制御 |
 | `DATABASE_MIGRATION_STRATEGY` | `exposed`                                             | マイグレーション方法 |
 | `POSTGRES_URL`                | `jdbc:postgresql://localhost:5432/super_shiharai_kun` | DB接続URL    |
 | `POSTGRES_USER`               | `myuser`                                              | DBユーザー名    |
@@ -329,3 +330,20 @@ data class Password private constructor(val value: String, private val isHashed:
 - リフレッシュトークンは現在未実装（将来的な改善課題）
 - トークンは安全に保管し、第三者に漏洩しないよう注意
 - トークン有効期限切れの場合は再ログインが必要
+
+### Swagger UI（API仕様書）
+
+#### アクセス方法
+- URL: `http://localhost:8080/swagger-ui`
+- 利用可能環境: `SWAGGER_ENABLED=true`の場合のみ
+
+#### 機能
+- インタラクティブなAPI探索
+- リクエスト・レスポンスのサンプル表示
+- 実際のAPIテスト実行
+- JWT Bearer認証のサポート
+
+#### 仕様書管理
+- OpenAPI仕様書: `src/main/resources/openapi/documentation.yaml`
+- 仕様書は手動で作成・更新が必要(生成AIで作れば工数は気にならない)
+- 新しいAPI追加時は対応するOpenAPI定義も追加すること

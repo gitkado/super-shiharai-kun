@@ -8,6 +8,7 @@ import com.example.config.security.configureSecurity
 import com.example.config.serialization.configureSerialization
 import com.example.presentation.routing.configureRouting
 import io.ktor.server.application.*
+import io.ktor.server.plugins.swagger.*
 import org.koin.ktor.ext.getKoin
 import org.koin.ktor.plugin.Koin
 import org.koin.ktor.plugin.KoinApplicationStarted

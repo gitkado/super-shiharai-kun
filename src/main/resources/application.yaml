@@ -17,3 +17,6 @@ jwt:
   domain: "https://jwt-provider-domain/"
   audience: "jwt-audience"
   realm: "ktor sample app"
+
+swagger:
+  enabled: ${SWAGGER_ENABLED:true}  # 開発環境ではtrue、本番環境ではfalse
