@@ -16,15 +16,83 @@ import org.koin.ktor.ext.inject
 
 fun Application.configureRouting() {
     install(StatusPages) {
+        // === 400系エラー ===
+
+        // ビジネスルール違反・バリデーションエラー
         exception<IllegalArgumentException> { call, cause ->
+            val field =
+                when {
+                    cause.message?.contains("email", ignoreCase = true) == true -> "email"
+                    cause.message?.contains("password", ignoreCase = true) == true -> "password"
+                    cause.message?.contains("fromDate", ignoreCase = true) == true -> "validation"
+                    else -> "validation"
+                }
             call.respond(
                 HttpStatusCode.BadRequest,
-                ErrorResponse(listOf(ValidationError("general", cause.message ?: "Bad request"))),
+                ErrorResponse(listOf(ValidationError(field, cause.message ?: "Invalid input"))),
             )
         }
+
+        // 日付フォーマットエラー
+        exception<java.time.format.DateTimeParseException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(listOf(ValidationError("validation", "Invalid date format. Use YYYY-MM-DD"))),
+            )
+        }
+
+        // 数値フォーマットエラー
+        exception<NumberFormatException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(listOf(ValidationError("validation", "Invalid number format"))),
+            )
+        }
+
+        // JSONパースエラー
+        exception<kotlinx.serialization.SerializationException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(listOf(ValidationError("json", "Invalid JSON format"))),
+            )
+        }
+
+        // リクエストボディが不正
+        exception<io.ktor.server.plugins.BadRequestException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(listOf(ValidationError("request", cause.message ?: "Bad request"))),
+            )
+        }
+
+        // === 404系エラー ===
+
+        // リソースが見つからない
+        exception<NoSuchElementException> { call, cause ->
+            call.respond(
+                HttpStatusCode.NotFound,
+                ErrorResponse(listOf(ValidationError("resource", "Resource not found"))),
+            )
+        }
+
+        // === 500系エラー ===
+
+        // データベース接続エラー
+        exception<java.sql.SQLException> { call, cause ->
+            call.application.log.error("Database error", cause)
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                ErrorResponse(listOf(ValidationError("database", "Database error occurred"))),
+            )
+        }
+
+        // 汎用的な500エラー（最後に配置）
         exception<Throwable> { call, cause ->
-            call.application.log.error("Unhandled exception", cause)
-            call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
+            call.application.log.error("Unhandled exception: ${cause.javaClass.simpleName}", cause)
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                ErrorResponse(listOf(ValidationError("error", "Internal server error"))),
+            )
         }
     }
     val authController by inject<AuthController>()
@@ -49,6 +117,9 @@ fun Application.configureRouting() {
             route("/v1/payable") {
                 post("/invoices") {
                     invoiceController.registerInvoice(call)
+                }
+                get("/invoices") {
+                    invoiceController.getInvoices(call)
                 }
             }
         }

@@ -23,31 +23,18 @@ class AuthController(private val authService: AuthService) {
     suspend fun register(call: ApplicationCall) {
         val request = call.receive<RegisterRequest>()
 
-        try {
-            val email = Email(request.email)
-            val password = Password(request.password)
+        val email = Email(request.email)
+        val password = Password(request.password)
 
-            val user =
-                authService.registerUser(
-                    companyName = request.companyName,
-                    name = request.name,
-                    email = email,
-                    password = password,
-                )
-
-            call.respond(HttpStatusCode.Created, user.toRegisterResponse())
-        } catch (e: IllegalArgumentException) {
-            val field =
-                when {
-                    e.message?.contains("email", ignoreCase = true) == true -> "email"
-                    e.message?.contains("password", ignoreCase = true) == true -> "password"
-                    else -> "validation"
-                }
-            call.respond(
-                HttpStatusCode.BadRequest,
-                ErrorResponse(listOf(ValidationError(field, e.message ?: "Invalid input"))),
+        val user =
+            authService.registerUser(
+                companyName = request.companyName,
+                name = request.name,
+                email = email,
+                password = password,
             )
-        }
+
+        call.respond(HttpStatusCode.Created, user.toRegisterResponse())
     }
 
     /**
@@ -64,36 +51,29 @@ class AuthController(private val authService: AuthService) {
     ) {
         val request = call.receive<LoginRequest>()
 
-        try {
-            val email = Email(request.email)
-            val user = authService.authenticateUser(email, request.password)
-            if (user == null) {
-                call.respond(
-                    HttpStatusCode.Unauthorized,
-                    ErrorResponse(listOf(ValidationError("credentials", "Invalid email or password"))),
-                )
-                return
-            }
-
-            val accessToken =
-                JwtUtil.generateToken(
-                    user,
-                    config.getJwtSecret(),
-                    config.getJwtAudience(),
-                    config.getJwtDomain(),
-                )
-            val loginResponse =
-                LoginResponse(
-                    accessToken = accessToken,
-                    expiresIn = JwtUtil.JWT_EXPIRATION_SECONDS,
-                )
-
-            call.respond(HttpStatusCode.OK, loginResponse)
-        } catch (e: IllegalArgumentException) {
+        val email = Email(request.email)
+        val user = authService.authenticateUser(email, request.password)
+        if (user == null) {
             call.respond(
-                HttpStatusCode.BadRequest,
-                ErrorResponse(listOf(ValidationError("email", e.message ?: "Invalid email format"))),
+                HttpStatusCode.Unauthorized,
+                ErrorResponse(listOf(ValidationError("credentials", "Invalid email or password"))),
             )
+            return
         }
+
+        val accessToken =
+            JwtUtil.generateToken(
+                user,
+                config.getJwtSecret(),
+                config.getJwtAudience(),
+                config.getJwtDomain(),
+            )
+        val loginResponse =
+            LoginResponse(
+                accessToken = accessToken,
+                expiresIn = JwtUtil.JWT_EXPIRATION_SECONDS,
+            )
+
+        call.respond(HttpStatusCode.OK, loginResponse)
     }
 }
