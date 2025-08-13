@@ -30,6 +30,20 @@ class FakeInvoiceRepository : InvoiceRepository {
         return invoices.values.filter { it.userId == userId }
     }
 
+    override suspend fun findByUserIdWithDateRange(
+        userId: Long,
+        paymentDueFrom: java.time.LocalDate?,
+        paymentDueTo: java.time.LocalDate?,
+    ): List<Invoice> {
+        return invoices.values
+            .filter { it.userId == userId }
+            .filter { invoice ->
+                (paymentDueFrom == null || invoice.paymentDueDate >= paymentDueFrom) &&
+                    (paymentDueTo == null || invoice.paymentDueDate <= paymentDueTo)
+            }
+            .sortedWith(compareBy<Invoice> { it.paymentDueDate }.thenBy { it.issueDate })
+    }
+
     override suspend fun update(invoice: Invoice): Invoice? {
         val id = invoice.id ?: return null
         if (invoices.containsKey(id)) {
