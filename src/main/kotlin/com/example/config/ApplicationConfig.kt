@@ -36,3 +36,31 @@ fun ApplicationConfig.getPostgresUser(): String {
 fun ApplicationConfig.getPostgresPassword(): String {
     return tryGetString("postgres.password") ?: "mypassword"
 }
+
+/**
+ * JWT ドメインを取得
+ */
+fun ApplicationConfig.getJwtDomain(): String {
+    return tryGetString("jwt.domain") ?: "https://jwt-provider-domain/"
+}
+
+/**
+ * JWT オーディエンスを取得
+ */
+fun ApplicationConfig.getJwtAudience(): String {
+    return tryGetString("jwt.audience") ?: "jwt-audience"
+}
+
+/**
+ * JWT レルムを取得
+ */
+fun ApplicationConfig.getJwtRealm(): String {
+    return tryGetString("jwt.realm") ?: "ktor sample app"
+}
+
+/**
+ * JWT シークレットを取得（環境変数から上書き可能）
+ */
+fun ApplicationConfig.getJwtSecret(): String {
+    return tryGetString("jwt.secret") ?: "secret"
+}

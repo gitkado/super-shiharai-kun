@@ -14,9 +14,10 @@ postgres:
   password: ${POSTGRES_PASSWORD:mypassword}
 
 jwt:
-  domain: "https://jwt-provider-domain/"
-  audience: "jwt-audience"
-  realm: "ktor sample app"
+  domain: "https://super-shiharai-kun.example.com"
+  audience: "super-shiharai-kun-api"
+  realm: "スーパー支払い君API"
+  secret: ${JWT_SECRET:change-this-in-production}
 
 app:
   development: ${APP_DEVELOPMENT:true}  # 開発モード有効/無効制御

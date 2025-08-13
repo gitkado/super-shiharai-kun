@@ -17,15 +17,20 @@ object JwtUtil {
     private const val JWT_DOMAIN = "https://jwt-provider-domain/"
     const val JWT_EXPIRATION_SECONDS = 24 * 60 * 60L // 24 hours in seconds
     private const val JWT_EXPIRATION_MS = JWT_EXPIRATION_SECONDS * 1000L
+    const val USER_ID_CLAIM = "userId"
+    const val EMAIL_CLAIM = "email"
+    const val NAME_CLAIM = "name"
+    const val COMPANY_NAME_CLAIM = "companyName"
 
     fun generateToken(user: User): String {
         return JWT.create()
             .withAudience(JWT_AUDIENCE)
             .withIssuer(JWT_DOMAIN)
             .withSubject((user.id ?: 0).toString())
-            .withClaim("email", user.email.value)
-            .withClaim("name", user.name)
-            .withClaim("companyName", user.companyName)
+            .withClaim(USER_ID_CLAIM, user.id ?: 0)
+            .withClaim(EMAIL_CLAIM, user.email.value)
+            .withClaim(NAME_CLAIM, user.name)
+            .withClaim(COMPANY_NAME_CLAIM, user.companyName)
             .withExpiresAt(Date(System.currentTimeMillis() + JWT_EXPIRATION_MS))
             .sign(Algorithm.HMAC256(JWT_SECRET))
     }

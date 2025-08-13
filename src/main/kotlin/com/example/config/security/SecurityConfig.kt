@@ -2,18 +2,20 @@ package com.example.config.security
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.example.config.*
+import com.example.domain.auth.model.valueobject.Email
+import com.example.util.JwtUtil
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 
 fun Application.configureSecurity() {
-    // Please read the jwt property from the config file if you are using EngineMain
-    val jwtAudience = "jwt-audience"
-    val jwtDomain = "https://jwt-provider-domain/"
-    val jwtRealm = "ktor sample app"
-    val jwtSecret = "secret"
+    val jwtAudience = environment.config.getJwtAudience()
+    val jwtDomain = environment.config.getJwtDomain()
+    val jwtRealm = environment.config.getJwtRealm()
+    val jwtSecret = environment.config.getJwtSecret()
     authentication {
-        jwt {
+        jwt("auth-jwt") {
             realm = jwtRealm
             verifier(
                 JWT
@@ -23,7 +25,20 @@ fun Application.configureSecurity() {
                     .build(),
             )
             validate { credential ->
-                if (credential.payload.audience.contains(jwtAudience)) JWTPrincipal(credential.payload) else null
+                if (credential.payload.audience.contains(jwtAudience)) {
+                    val userId = credential.payload.getClaim(JwtUtil.USER_ID_CLAIM)?.asLong()
+                    val email = credential.payload.getClaim(JwtUtil.EMAIL_CLAIM)?.asString()
+                    val name = credential.payload.getClaim(JwtUtil.NAME_CLAIM)?.asString()
+                    val companyName = credential.payload.getClaim(JwtUtil.COMPANY_NAME_CLAIM)?.asString()
+
+                    if (userId != null && email != null && name != null && companyName != null) {
+                        UserPrincipal(userId, Email(email), name, companyName)
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
             }
         }
     }
