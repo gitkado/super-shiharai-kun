@@ -18,5 +18,5 @@ jwt:
   audience: "jwt-audience"
   realm: "ktor sample app"
 
-swagger:
-  enabled: ${SWAGGER_ENABLED:true}  # 開発環境ではtrue、本番環境ではfalse
+app:
+  development: ${APP_DEVELOPMENT:true}  # 開発モード有効/無効制御

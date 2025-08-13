@@ -14,9 +14,7 @@ class AuthService(private val userRepository: UserRepository) {
     ): User {
         // Check if email already exists
         val existingUser = userRepository.findByEmail(email)
-        if (existingUser != null) {
-            throw IllegalArgumentException("Email already exists")
-        }
+        require(existingUser == null) { "Email already exists" }
 
         // Create user
         val user =

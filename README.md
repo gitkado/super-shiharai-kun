@@ -147,7 +147,7 @@ class AuthServiceTest {
 
 | 変数名                           | デフォルト値                                                | 説明         |
 |-------------------------------|-------------------------------------------------------|------------|
-| `SWAGGER_ENABLED`             | `true`                                                | Swagger UI有効/無効制御 |
+| `APP_DEVELOPMENT`             | `true`                                                | 開発モード有効/無効制御 |
 | `DATABASE_MIGRATION_STRATEGY` | `exposed`                                             | マイグレーション方法 |
 | `POSTGRES_URL`                | `jdbc:postgresql://localhost:5432/super_shiharai_kun` | DB接続URL    |
 | `POSTGRES_USER`               | `myuser`                                              | DBユーザー名    |
@@ -335,7 +335,7 @@ data class Password private constructor(val value: String, private val isHashed:
 
 #### アクセス方法
 - URL: `http://localhost:8080/swagger-ui`
-- 利用可能環境: `SWAGGER_ENABLED=true`の場合のみ
+- 利用可能環境: `APP_DEVELOPMENT=true`の場合のみ
 
 #### 機能
 - インタラクティブなAPI探索

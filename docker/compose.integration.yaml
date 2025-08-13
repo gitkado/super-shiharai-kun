@@ -17,6 +17,8 @@ services:
       - POSTGRES_PASSWORD=mypassword
       # Flyway configuration
       - DATABASE_MIGRATION_STRATEGY=flyway
+      # Development mode configuration
+      - APP_DEVELOPMENT=true
       # JVM options for container environment
       - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseContainerSupport
     depends_on:

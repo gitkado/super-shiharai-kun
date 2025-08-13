@@ -1,5 +1,4 @@
-package com.example
-
+import com.example.module
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.config.*

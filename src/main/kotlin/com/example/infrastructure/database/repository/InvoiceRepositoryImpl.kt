@@ -5,6 +5,7 @@ import com.example.domain.payable.repository.InvoiceRepository
 import com.example.infrastructure.database.schema.InvoicesTable
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.OffsetDateTime
 
@@ -33,7 +34,7 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
     override suspend fun findById(id: Long): Invoice? =
         dbQuery {
             InvoicesTable.selectAll()
-                .where { InvoicesTable.id eq id }
+                .where { InvoicesTable.id.eq(id) }
                 .map { it.toInvoice() }
                 .singleOrNull()
         }
@@ -41,7 +42,7 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
     override suspend fun findByUserId(userId: Long): List<Invoice> =
         dbQuery {
             InvoicesTable.selectAll()
-                .where { InvoicesTable.userId eq userId }
+                .where { InvoicesTable.userId.eq(userId) }
                 .map { it.toInvoice() }
         }
 
@@ -49,7 +50,7 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
         dbQuery {
             val id = invoice.id ?: return@dbQuery null
             val updateCount =
-                InvoicesTable.update({ InvoicesTable.id eq id }) {
+                InvoicesTable.update({ InvoicesTable.id.eq(id) }) {
                     it[userId] = invoice.userId
                     it[issueDate] = invoice.issueDate
                     it[paymentAmount] = invoice.paymentAmount
@@ -69,9 +70,10 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
             }
         }
 
-    override suspend fun delete(id: Int): Boolean =
+    override suspend fun delete(id: Long): Boolean =
         dbQuery {
-            InvoicesTable.deleteWhere { InvoicesTable.id eq id } > 0
+            val deletedRows = InvoicesTable.deleteWhere { InvoicesTable.id.eq(id) }
+            deletedRows > 0
         }
 
     private fun ResultRow.toInvoice(): Invoice {

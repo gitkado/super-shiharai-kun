@@ -1,13 +1,12 @@
 package com.example.config
 
-import io.ktor.server.application.*
 import io.ktor.server.config.*
 
 /**
- * Swagger UI機能が有効かどうかを取得
+ * 開発モードかどうかを取得
  */
-fun ApplicationConfig.isSwaggerEnabled(): Boolean {
-    return tryGetString("swagger.enabled")?.toBoolean() ?: true
+fun ApplicationConfig.isDevelopmentMode(): Boolean {
+    return tryGetString("app.development")?.toBoolean() ?: true
 }
 
 /**

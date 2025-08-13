@@ -1,6 +1,6 @@
 package com.example.presentation.routing
 
-import com.example.config.isSwaggerEnabled
+import com.example.config.isDevelopmentMode
 import com.example.presentation.controller.AuthController
 import com.example.presentation.dto.response.ErrorResponse
 import com.example.presentation.dto.response.ValidationError
@@ -29,7 +29,7 @@ fun Application.configureRouting() {
 
     routing {
         // Swagger UI エンドポイント（設定で有効化されている場合のみ）
-        if (environment.config.isSwaggerEnabled()) {
+        if (environment.config.isDevelopmentMode()) {
             swaggerUI(path = "swagger-ui", swaggerFile = "openapi/documentation.yaml")
         }
 
