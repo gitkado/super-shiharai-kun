@@ -179,6 +179,90 @@ paths:
                     errors:
                       - field: "auth"
                         message: "Invalid token"
+    get:
+      tags:
+        - "Invoice"
+      summary: "請求書一覧取得"
+      description: "ログイン中のユーザーの請求書一覧を取得します。支払期日による絞り込みが可能です。認証が必要です。"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paymentDueFrom
+          in: query
+          description: "支払期日の範囲指定（開始日）"
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: paymentDueTo
+          in: query
+          description: "支払期日の範囲指定（終了日）"
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+      responses:
+        "200":
+          description: "請求書一覧取得成功"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InvoiceResponse"
+              examples:
+                success:
+                  value:
+                    - id: 1
+                      issueDate: "2024-01-15"
+                      paymentAmount: 10000.00
+                      fee: 400.00
+                      feeRate: 0.04
+                      taxAmount: 40.00
+                      taxRate: 0.10
+                      totalAmount: 10440.00
+                      paymentDueDate: "2024-02-15"
+                      createdAt: "2024-01-15T10:00:00+09:00"
+                      updatedAt: "2024-01-15T10:00:00+09:00"
+                    - id: 2
+                      issueDate: "2024-01-20"
+                      paymentAmount: 5000.00
+                      fee: 200.00
+                      feeRate: 0.04
+                      taxAmount: 20.00
+                      taxRate: 0.10
+                      totalAmount: 5220.00
+                      paymentDueDate: "2024-02-20"
+                      createdAt: "2024-01-20T14:30:00+09:00"
+                      updatedAt: "2024-01-20T14:30:00+09:00"
+                empty_list:
+                  value: []
+        "400":
+          description: "バリデーションエラー"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                validation_error:
+                  value:
+                    errors:
+                      - field: "validation"
+                        message: "Invalid date format. Use YYYY-MM-DD"
+        "401":
+          description: "認証エラー"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                auth_error:
+                  value:
+                    errors:
+                      - field: "auth"
+                        message: "Invalid token"
 
 components:
   schemas:
