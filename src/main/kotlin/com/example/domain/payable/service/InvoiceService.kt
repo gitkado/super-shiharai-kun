@@ -1,19 +1,23 @@
 package com.example.domain.payable.service
 
+import com.example.config.getInvoiceFeeRate
+import com.example.config.getInvoiceTaxRate
 import com.example.domain.payable.model.Invoice
 import com.example.domain.payable.model.valueobject.Money
 import com.example.domain.payable.model.valueobject.Rate
 import com.example.domain.payable.repository.InvoiceRepository
 import com.example.infrastructure.database.Tx
+import io.ktor.server.config.ApplicationConfig
 import java.time.LocalDate
 import java.time.OffsetDateTime
 
 class InvoiceService(
     private val invoiceRepository: InvoiceRepository,
     private val tx: Tx,
+    private val config: ApplicationConfig,
 ) {
-    private val feeRate: Rate = Rate.of("0.04")
-    private val taxRate: Rate = Rate.of("0.10")
+    private val feeRate: Rate = Rate.of(config.getInvoiceFeeRate())
+    private val taxRate: Rate = Rate.of(config.getInvoiceTaxRate())
     private val calculator = InvoiceCalculator(feeRate, taxRate)
 
     suspend fun registerInvoice(

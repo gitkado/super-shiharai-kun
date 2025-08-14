@@ -64,3 +64,17 @@ fun ApplicationConfig.getJwtRealm(): String {
 fun ApplicationConfig.getJwtSecret(): String {
     return tryGetString("jwt.secret") ?: "secret"
 }
+
+/**
+ * 請求書手数料率を取得
+ */
+fun ApplicationConfig.getInvoiceFeeRate(): String {
+    return tryGetString("invoice.fee_rate") ?: "0.04"
+}
+
+/**
+ * 請求書消費税率を取得
+ */
+fun ApplicationConfig.getInvoiceTaxRate(): String {
+    return tryGetString("invoice.tax_rate") ?: "0.10"
+}

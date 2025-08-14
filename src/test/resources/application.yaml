@@ -17,3 +17,11 @@ jwt:
   domain: "https://jwt-provider-domain/"
   audience: "jwt-audience"
   realm: "ktor sample app"
+  secret: "test-secret-key"
+
+app:
+  development: true
+
+invoice:
+  fee_rate: "0.04"  # 手数料率（4%）
+  tax_rate: "0.10"  # 消費税率（10%）

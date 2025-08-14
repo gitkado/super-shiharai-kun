@@ -5,6 +5,7 @@ import com.example.domain.payable.model.Invoice
 import com.example.domain.payable.model.valueobject.Money
 import com.example.domain.payable.model.valueobject.Rate
 import com.example.domain.payable.service.fixture.FakeInvoiceRepository
+import io.ktor.server.config.ApplicationConfig
 import kotlinx.coroutines.test.runTest
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -12,7 +13,8 @@ import kotlin.test.*
 
 class InvoiceServiceTest {
     private val invoiceRepository = FakeInvoiceRepository()
-    private val invoiceService = InvoiceService(invoiceRepository, MockTx())
+    private val config = ApplicationConfig("application.yaml")
+    private val invoiceService = InvoiceService(invoiceRepository, MockTx(), config)
 
     @BeforeTest
     fun setUp() {

@@ -21,3 +21,7 @@ jwt:
 
 app:
   development: ${APP_DEVELOPMENT:true}  # 開発モード有効/無効制御
+
+invoice:
+  fee_rate: ${INVOICE_FEE_RATE:0.04}  # 手数料率（4%）
+  tax_rate: ${INVOICE_TAX_RATE:0.10}  # 消費税率（10%）
