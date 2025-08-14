@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.example.config.*
 import com.example.domain.auth.model.valueobject.Email
-import com.example.util.JwtUtil
+import com.example.domain.auth.port.TokenGenerator
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -26,10 +26,10 @@ fun Application.configureSecurity() {
             )
             validate { credential ->
                 if (credential.payload.audience.contains(jwtAudience)) {
-                    val userId = credential.payload.getClaim(JwtUtil.USER_ID_CLAIM)?.asLong()
-                    val email = credential.payload.getClaim(JwtUtil.EMAIL_CLAIM)?.asString()
-                    val name = credential.payload.getClaim(JwtUtil.NAME_CLAIM)?.asString()
-                    val companyName = credential.payload.getClaim(JwtUtil.COMPANY_NAME_CLAIM)?.asString()
+                    val userId = credential.payload.getClaim(TokenGenerator.USER_ID_CLAIM)?.asLong()
+                    val email = credential.payload.getClaim(TokenGenerator.EMAIL_CLAIM)?.asString()
+                    val name = credential.payload.getClaim(TokenGenerator.NAME_CLAIM)?.asString()
+                    val companyName = credential.payload.getClaim(TokenGenerator.COMPANY_NAME_CLAIM)?.asString()
 
                     if (userId != null && email != null && name != null && companyName != null) {
                         UserPrincipal(userId, Email(email), name, companyName)

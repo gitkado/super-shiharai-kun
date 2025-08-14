@@ -1,6 +1,8 @@
 package com.example.config.di
 
+import com.example.application.port.TransactionRunner
 import com.example.config.database.HikariDataSourceKey
+import com.example.infrastructure.database.ExposedTransactionRunner
 import com.example.infrastructure.database.Tx
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
@@ -28,5 +30,10 @@ val databaseModule =
         // Txユーティリティをsingletonとして登録
         single<Tx> {
             Tx(get<Database>(), KtorSimpleLogger("TX"))
+        }
+
+        // TransactionRunner実装（Infrastructure層）
+        single<TransactionRunner> {
+            ExposedTransactionRunner(get<Tx>())
         }
     }

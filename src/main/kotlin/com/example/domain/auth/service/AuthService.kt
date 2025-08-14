@@ -1,14 +1,14 @@
 package com.example.domain.auth.service
 
+import com.example.application.port.TransactionRunner
 import com.example.domain.auth.model.User
 import com.example.domain.auth.model.valueobject.Email
 import com.example.domain.auth.model.valueobject.Password
 import com.example.domain.auth.repository.UserRepository
-import com.example.infrastructure.database.Tx
 
 class AuthService(
     private val userRepository: UserRepository,
-    private val tx: Tx,
+    private val trx: TransactionRunner,
 ) {
     suspend fun registerUser(
         companyName: String,
@@ -16,7 +16,7 @@ class AuthService(
         email: Email,
         password: Password,
     ): User =
-        tx.required {
+        trx.required {
             // Create user
             val user =
                 User(
@@ -34,7 +34,7 @@ class AuthService(
         email: Email,
         rawPassword: String,
     ): User? =
-        tx.readOnly {
+        trx.readOnly {
             val user = userRepository.findByEmail(email) ?: return@readOnly null
 
             if (user.password.verify(rawPassword)) user else null

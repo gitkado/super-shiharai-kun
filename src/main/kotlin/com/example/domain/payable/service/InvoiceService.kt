@@ -1,23 +1,19 @@
 package com.example.domain.payable.service
 
-import com.example.config.getInvoiceFeeRate
-import com.example.config.getInvoiceTaxRate
+import com.example.application.port.TransactionRunner
 import com.example.domain.payable.model.Invoice
 import com.example.domain.payable.model.valueobject.Money
 import com.example.domain.payable.model.valueobject.Rate
 import com.example.domain.payable.repository.InvoiceRepository
-import com.example.infrastructure.database.Tx
-import io.ktor.server.config.ApplicationConfig
 import java.time.LocalDate
 import java.time.OffsetDateTime
 
 class InvoiceService(
     private val invoiceRepository: InvoiceRepository,
-    private val tx: Tx,
-    private val config: ApplicationConfig,
+    private val trx: TransactionRunner,
+    private val feeRate: Rate,
+    private val taxRate: Rate,
 ) {
-    private val feeRate: Rate = Rate.of(config.getInvoiceFeeRate())
-    private val taxRate: Rate = Rate.of(config.getInvoiceTaxRate())
     private val calculator = InvoiceCalculator(feeRate, taxRate)
 
     suspend fun registerInvoice(
@@ -26,7 +22,7 @@ class InvoiceService(
         paymentAmount: Money,
         paymentDueDate: LocalDate,
     ): Invoice =
-        tx.required {
+        trx.required {
             val result = calculator.compute(paymentAmount)
             val invoice =
                 Invoice(
@@ -51,7 +47,7 @@ class InvoiceService(
         paymentDueFrom: LocalDate? = null,
         paymentDueTo: LocalDate? = null,
     ): List<Invoice> =
-        tx.readOnly {
+        trx.readOnly {
             // ビジネスルール: paymentDueFromはpaymentDueTo以前である必要がある
             if (paymentDueFrom != null && paymentDueTo != null) {
                 require(paymentDueFrom <= paymentDueTo) { "paymentDueFrom must be before or equal to paymentDueTo" }

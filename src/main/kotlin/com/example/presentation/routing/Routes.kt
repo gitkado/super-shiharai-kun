@@ -120,7 +120,7 @@ fun Application.configureRouting() {
                 authController.register(call)
             }
             post("/login") {
-                authController.login(call, environment.config)
+                authController.login(call)
             }
         }
 

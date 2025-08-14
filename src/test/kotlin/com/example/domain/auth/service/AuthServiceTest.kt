@@ -3,7 +3,7 @@ package com.example.domain.auth.service
 import com.example.domain.auth.model.valueobject.Email
 import com.example.domain.auth.model.valueobject.Password
 import com.example.domain.auth.service.fixture.FakeUserRepository
-import com.example.domain.auth.service.fixture.MockTx
+import com.example.domain.auth.service.fixture.MockTransactionRunner
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
@@ -12,7 +12,7 @@ import kotlin.test.*
  */
 class AuthServiceTest {
     private val userRepository = FakeUserRepository()
-    private val authService = AuthService(userRepository, MockTx())
+    private val authService = AuthService(userRepository, MockTransactionRunner())
 
     @BeforeTest
     fun setUp() {
