@@ -5,101 +5,100 @@ import com.example.domain.payable.model.valueobject.Money
 import com.example.domain.payable.model.valueobject.Rate
 import com.example.domain.payable.repository.InvoiceRepository
 import com.example.infrastructure.database.schema.InvoicesTable
-import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import java.time.LocalDate
 import java.time.OffsetDateTime
 
-class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository {
-    override suspend fun create(invoice: Invoice): Invoice =
-        dbQuery {
-            val now = OffsetDateTime.now()
-            val insertedId =
-                InvoicesTable.insert {
-                    it[userId] = invoice.userId
-                    it[issueDate] = invoice.issueDate
-                    it[paymentAmount] = invoice.paymentAmount.amount
-                    it[fee] = invoice.fee.amount
-                    it[feeRate] = invoice.feeRate.value
-                    it[taxAmount] = invoice.taxAmount.amount
-                    it[taxRate] = invoice.taxRate.value
-                    it[totalAmount] = invoice.totalAmount.amount
-                    it[paymentDueDate] = invoice.paymentDueDate
-                    it[createdAt] = now
-                    it[updatedAt] = now
-                }[InvoicesTable.id].value
+class InvoiceRepositoryImpl : InvoiceRepository {
+    override suspend fun create(invoice: Invoice): Invoice {
+        requireActiveTransaction()
+        val now = OffsetDateTime.now()
+        val insertedId =
+            InvoicesTable.insert {
+                it[userId] = invoice.userId
+                it[issueDate] = invoice.issueDate
+                it[paymentAmount] = invoice.paymentAmount.amount
+                it[fee] = invoice.fee.amount
+                it[feeRate] = invoice.feeRate.value
+                it[taxAmount] = invoice.taxAmount.amount
+                it[taxRate] = invoice.taxRate.value
+                it[totalAmount] = invoice.totalAmount.amount
+                it[paymentDueDate] = invoice.paymentDueDate
+                it[createdAt] = now
+                it[updatedAt] = now
+            }[InvoicesTable.id].value
 
-            invoice.copy(id = insertedId, createdAt = now, updatedAt = now)
-        }
+        return invoice.copy(id = insertedId, createdAt = now, updatedAt = now)
+    }
 
-    override suspend fun findById(id: Long): Invoice? =
-        dbQuery {
-            InvoicesTable.selectAll()
-                .where { InvoicesTable.id.eq(id) }
-                .map { it.toInvoice() }
-                .singleOrNull()
-        }
+    override suspend fun findById(id: Long): Invoice? {
+        requireActiveTransaction()
+        return InvoicesTable.selectAll()
+            .where { InvoicesTable.id.eq(id) }
+            .map { it.toInvoice() }
+            .singleOrNull()
+    }
 
-    override suspend fun findByUserId(userId: Long): List<Invoice> =
-        dbQuery {
-            InvoicesTable.selectAll()
-                .where { InvoicesTable.userId.eq(userId) }
-                .map { it.toInvoice() }
-        }
+    override suspend fun findByUserId(userId: Long): List<Invoice> {
+        requireActiveTransaction()
+        return InvoicesTable.selectAll()
+            .where { InvoicesTable.userId.eq(userId) }
+            .map { it.toInvoice() }
+    }
 
     override suspend fun findByUserIdWithDateRange(
         userId: Long,
         paymentDueFrom: LocalDate?,
         paymentDueTo: LocalDate?,
-    ): List<Invoice> =
-        dbQuery {
-            var query =
-                InvoicesTable.selectAll()
-                    .where { InvoicesTable.userId.eq(userId) }
+    ): List<Invoice> {
+        requireActiveTransaction()
+        var query =
+            InvoicesTable.selectAll()
+                .where { InvoicesTable.userId.eq(userId) }
 
-            paymentDueFrom?.let {
-                query = query.andWhere { InvoicesTable.paymentDueDate.greaterEq(it) }
-            }
-
-            paymentDueTo?.let {
-                query = query.andWhere { InvoicesTable.paymentDueDate.lessEq(it) }
-            }
-
-            query.orderBy(InvoicesTable.paymentDueDate to SortOrder.ASC, InvoicesTable.issueDate to SortOrder.ASC)
-                .map { it.toInvoice() }
+        paymentDueFrom?.let {
+            query = query.andWhere { InvoicesTable.paymentDueDate.greaterEq(it) }
         }
 
-    override suspend fun update(invoice: Invoice): Invoice? =
-        dbQuery {
-            val id = invoice.id ?: return@dbQuery null
-            val updateCount =
-                InvoicesTable.update({ InvoicesTable.id.eq(id) }) {
-                    it[userId] = invoice.userId
-                    it[issueDate] = invoice.issueDate
-                    it[paymentAmount] = invoice.paymentAmount.amount
-                    it[fee] = invoice.fee.amount
-                    it[feeRate] = invoice.feeRate.value
-                    it[taxAmount] = invoice.taxAmount.amount
-                    it[taxRate] = invoice.taxRate.value
-                    it[totalAmount] = invoice.totalAmount.amount
-                    it[paymentDueDate] = invoice.paymentDueDate
-                    it[updatedAt] = OffsetDateTime.now()
-                }
+        paymentDueTo?.let {
+            query = query.andWhere { InvoicesTable.paymentDueDate.lessEq(it) }
+        }
 
-            if (updateCount > 0) {
-                findById(id)
-            } else {
-                null
+        return query.orderBy(InvoicesTable.paymentDueDate to SortOrder.ASC, InvoicesTable.issueDate to SortOrder.ASC)
+            .map { it.toInvoice() }
+    }
+
+    override suspend fun update(invoice: Invoice): Invoice? {
+        requireActiveTransaction()
+        val id = invoice.id ?: return null
+        val updateCount =
+            InvoicesTable.update({ InvoicesTable.id.eq(id) }) {
+                it[userId] = invoice.userId
+                it[issueDate] = invoice.issueDate
+                it[paymentAmount] = invoice.paymentAmount.amount
+                it[fee] = invoice.fee.amount
+                it[feeRate] = invoice.feeRate.value
+                it[taxAmount] = invoice.taxAmount.amount
+                it[taxRate] = invoice.taxRate.value
+                it[totalAmount] = invoice.totalAmount.amount
+                it[paymentDueDate] = invoice.paymentDueDate
+                it[updatedAt] = OffsetDateTime.now()
             }
-        }
 
-    override suspend fun delete(id: Long): Boolean =
-        dbQuery {
-            val deletedRows = InvoicesTable.deleteWhere { InvoicesTable.id.eq(id) }
-            deletedRows > 0
+        return if (updateCount > 0) {
+            findById(id)
+        } else {
+            null
         }
+    }
+
+    override suspend fun delete(id: Long): Boolean {
+        requireActiveTransaction()
+        val deletedRows = InvoicesTable.deleteWhere { InvoicesTable.id.eq(id) }
+        return deletedRows > 0
+    }
 
     private fun ResultRow.toInvoice(): Invoice {
         return Invoice(
@@ -118,5 +117,9 @@ class InvoiceRepositoryImpl(private val database: Database) : InvoiceRepository 
         )
     }
 
-    private suspend fun <T> dbQuery(block: suspend () -> T): T = newSuspendedTransaction(Dispatchers.IO, database) { block() }
+    private fun requireActiveTransaction() {
+        requireNotNull(
+            TransactionManager.currentOrNull(),
+        ) { "No active transaction. Repository methods must be called within a transaction." }
+    }
 }

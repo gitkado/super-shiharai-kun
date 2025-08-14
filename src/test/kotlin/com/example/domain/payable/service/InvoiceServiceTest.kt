@@ -1,5 +1,6 @@
 package com.example.domain.payable.service
 
+import com.example.domain.auth.service.fixture.MockTx
 import com.example.domain.payable.model.Invoice
 import com.example.domain.payable.model.valueobject.Money
 import com.example.domain.payable.model.valueobject.Rate
@@ -11,7 +12,7 @@ import kotlin.test.*
 
 class InvoiceServiceTest {
     private val invoiceRepository = FakeInvoiceRepository()
-    private val invoiceService = InvoiceService(invoiceRepository)
+    private val invoiceService = InvoiceService(invoiceRepository, MockTx())
 
     @BeforeTest
     fun setUp() {

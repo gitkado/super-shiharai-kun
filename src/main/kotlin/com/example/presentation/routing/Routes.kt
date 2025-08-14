@@ -1,6 +1,7 @@
 package com.example.presentation.routing
 
 import com.example.config.isDevelopmentMode
+import com.example.domain.auth.exception.UserAlreadyExistsException
 import com.example.presentation.controller.AuthController
 import com.example.presentation.controller.InvoiceController
 import com.example.presentation.dto.response.ErrorResponse
@@ -17,6 +18,14 @@ import org.koin.ktor.ext.inject
 fun Application.configureRouting() {
     install(StatusPages) {
         // === 400系エラー ===
+
+        // ユーザー重複エラー
+        exception<UserAlreadyExistsException> { call, cause ->
+            call.respond(
+                HttpStatusCode.Conflict,
+                ErrorResponse(listOf(ValidationError("email", "Email already exists"))),
+            )
+        }
 
         // ビジネスルール違反・バリデーションエラー
         exception<IllegalArgumentException> { call, cause ->

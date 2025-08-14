@@ -19,18 +19,174 @@
 
 ## 技術機能
 
-| 技術要素                      | 説明                      |
-|---------------------------|-------------------------|
-| Ktor 3.2.3            | Kotlin製の非同期Webフレームワーク   |
-| PostgreSQL 16.3       | 本番・開発用リレーショナルデータベース     |
-| H2 Database           | テスト用高速インメモリDB           |
-| Exposed ORM           | Kotlin製のタイプセーフなSQL DSL  |
-| Flyway                | データベースマイグレーションツール       |
-| Koin 4.1.0            | 軽量な依存性注入フレームワーク         |
-| HikariCP              | 高性能なJDBCコネクションプール       |
-| JWT認証                 | ステートレスな認証トークンシステム       |
-| Docker                | アプリケーションコンテナ化           |
-| kotlinx.serialization | Kotlin公式のJSONシリアライゼーション |
+| 技術要素                  | 説明                                |
+|-----------------------|-----------------------------------|
+| Ktor 3.2.3            | Kotlin製の非同期Webフレームワーク             |
+| PostgreSQL 16.3       | 本番・開発用リレーショナルデータベース               |
+| H2 Database           | テスト用高速インメモリDB                     |
+| Exposed ORM           | Kotlin製のタイプセーフなSQL DSL            |
+| Flyway                | データベースマイグレーションツール                 |
+| Koin 4.1.0            | 軽量な依存性注入フレームワーク                   |
+| HikariCP              | 高性能なJDBCコネクションプール                 |
+| JWT認証                 | ステートレスな認証トークンシステム                 |
+| トランザクション管理            | Spring Boot `@Transactional`相当の機能 |
+| Docker                | アプリケーションコンテナ化                     |
+| kotlinx.serialization | Kotlin公式のJSONシリアライゼーション           |
+
+## 🔄 トランザクション管理
+
+サービス層でのトランザクション境界管理により、データ整合性を保証。
+
+### 基本方針
+
+- サービス層でトランザクション境界を設定: Repository は既存トランザクションに相乗り
+- 二重チェック排他: アプリ側検証 + DB制約（UNIQUE）の併用
+- リトライ機能: PostgreSQL の serialization_failure, deadlock に対応
+- 分離レベル: デフォルト `REPEATABLE_READ`（要件に応じて変更可能）
+
+### 利用方法
+
+#### サービス層での実装パターン
+
+```kotlin
+class AuthService(
+    private val userRepository: UserRepository,
+    private val tx: Tx
+) {
+    // 基本パターン: required（既存TXに相乗り or 新規開始）
+    suspend fun registerUser(...): User = tx.required {
+        try {
+            if (userRepository.existsByEmail(email)) {
+                error("Email already exists")
+            }
+            
+            val user = User(...)
+            val userId = userRepository.create(user)
+            userRepository.findById(userId)!!
+        } catch (e: Exception) {
+            if (isUniqueViolation(e)) {
+                error("Email already exists")
+            }
+            throw e
+        }
+    }
+    
+    // 分離パターン: requiresNew（監査ログなど独立したコミット）
+    suspend fun updateUserWithAudit(...): User = tx.required {
+        val updated = userRepository.update(user)
+        
+        // 元処理の成否に関わらず監査ログは必ずコミット
+        tx.requiresNew {
+            auditLogRepository.logUserUpdate(user)
+        }
+        
+        updated
+    }
+}
+```
+
+#### Repository層での実装パターン
+
+```kotlin
+class UserRepositoryImpl : UserRepository {
+    override suspend fun create(user: User): Long {
+        requireActiveTransaction()  // 既存TX必須チェック
+        return UsersTable.insert { ... }[UsersTable.id].value
+    }
+    
+    private fun requireActiveTransaction() {
+        requireNotNull(TransactionManager.currentOrNull()) { 
+            "No active transaction. Repository methods must be called within a transaction." 
+        }
+    }
+}
+```
+
+### トランザクション境界制御
+
+| メソッド                     | 動作              | 用途            |
+|--------------------------|-----------------|---------------|
+| `tx.required { ... }`    | 既存TXに相乗り / 新規開始 | 通常の業務処理       |
+| `tx.requiresNew { ... }` | 常に新規TX開始        | 監査ログ、通知等の分離処理 |
+
+### 競合安全性・エラーハンドリング
+
+#### UNIQUE制約違反の処理
+
+```kotlin
+private fun isUniqueViolation(e: Exception): Boolean {
+    val sqlState = when {
+        e.cause?.cause is SQLException -> (e.cause?.cause as SQLException).sqlState
+        e.cause is SQLException -> (e.cause as SQLException).sqlState  
+        e is SQLException -> e.sqlState
+        else -> null
+    }
+    return sqlState == "23505" // PostgreSQL unique_violation
+}
+```
+
+#### リトライ対象エラー
+
+- SQLState 40001: serialization_failure（読み取り競合）
+- SQLState 40P01: deadlock_detected（デッドロック）
+- リトライ回数: デフォルト 2回（合計3試行）
+
+### 設定・カスタマイズ
+
+#### DI設定（Koin）
+
+```kotlin
+val databaseModule = module {
+    single<Database> { Database.connect(get<HikariDataSource>()) }
+    single<Tx> { 
+        Tx(
+            db = get<Database>(),
+            logger = KtorSimpleLogger("TX"),
+            isolation = Connection.TRANSACTION_REPEATABLE_READ,
+            maxRetries = 2
+        )
+    }
+}
+```
+
+#### 分離レベルの変更
+
+```kotlin
+// 読み取り競合が多い場合の設定例
+single<Tx> { 
+    Tx(get<Database>(), isolation = Connection.TRANSACTION_READ_COMMITTED)
+}
+```
+
+### 運用ガイドライン
+
+#### ✅ 推奨パターン
+
+- サービス層の全メソッドを `tx.required { ... }` で囲む
+- 複数Repository操作は同一トランザクション内で実行
+- DB制約（UNIQUE, FK等）による最終的な整合性保証
+- 監査ログ等は `tx.requiresNew { ... }` で分離実行
+
+#### ❌ 禁止パターン
+
+- Repository での `transaction { ... }` / `newSuspendedTransaction { ... }` 使用
+- Repository から Database への直接依存
+- トランザクション境界をまたぐ状態共有
+
+### テスト戦略
+
+```kotlin
+class AuthServiceTest {
+    private val userRepository = FakeUserRepository()
+    private val mockTx = MockTx()  // テスト用Txモック
+    private val authService = AuthService(userRepository, mockTx)
+    
+    @Test
+    fun `registerUser - 正常にユーザー登録できること`() = runTest {
+        // Fake Repository使用によりDB不要なユニットテスト
+    }
+}
+```
 
 ## 事前準備
 
@@ -241,6 +397,7 @@ src/
 │   │   └── payable/                     # 支払い管理ドメイン
 │   ├── infrastructure/                  # インフラストラクチャレイヤー
 │   │   └── database/
+│   │       ├── Tx.kt                    # トランザクション管理ユーティリティ
 │   │       ├── repository/              # UserRepositoryImpl等
 │   │       └── schema/                  # UsersTable等
 │   │           └── customtypes/         # CitextColumnType等
@@ -255,7 +412,7 @@ src/
     └── domain/
         └── auth/
             └── service/
-                ├── fixture/             # FakeUserRepository等
+                ├── fixture/             # FakeUserRepository, MockTx等
                 └── AuthServiceTest.kt   # サービス単位のテスト
 ```
 
@@ -263,8 +420,10 @@ src/
 
 - ドメインレイヤー: ビジネスロジック・エンティティ・ルールを含む。外部依存から独立
 - インフラストラクチャレイヤー: データベースアクセス・外部サービス等の技術的関心事を実装
+  - `Tx.kt`: トランザクション境界管理（Spring Boot `@Transactional`相当）
+  - Repository実装: 既存トランザクションでのDB操作実行
 - プレゼンテーションレイヤー: HTTPリクエスト/レスポンス処理・APIコントラクトを担当
-- 設定レイヤー: アプリケーション設定・フレームワーク設定を管理
+- 設定レイヤー: アプリケーション設定・フレームワーク設定・DI設定を管理
 
 ### Value Objectsパターンの活用
 

@@ -4,10 +4,14 @@ import com.example.domain.payable.model.Invoice
 import com.example.domain.payable.model.valueobject.Money
 import com.example.domain.payable.model.valueobject.Rate
 import com.example.domain.payable.repository.InvoiceRepository
+import com.example.infrastructure.database.Tx
 import java.time.LocalDate
 import java.time.OffsetDateTime
 
-class InvoiceService(private val invoiceRepository: InvoiceRepository) {
+class InvoiceService(
+    private val invoiceRepository: InvoiceRepository,
+    private val tx: Tx,
+) {
     private val feeRate: Rate = Rate.of("0.04")
     private val taxRate: Rate = Rate.of("0.10")
     private val calculator = InvoiceCalculator(feeRate, taxRate)
@@ -17,25 +21,26 @@ class InvoiceService(private val invoiceRepository: InvoiceRepository) {
         issueDate: LocalDate,
         paymentAmount: Money,
         paymentDueDate: LocalDate,
-    ): Invoice {
-        val result = calculator.compute(paymentAmount)
-        val invoice =
-            Invoice(
-                userId = userId,
-                issueDate = issueDate,
-                paymentAmount = paymentAmount,
-                fee = result.fee,
-                feeRate = feeRate,
-                taxAmount = result.tax,
-                taxRate = taxRate,
-                totalAmount = result.total,
-                paymentDueDate = paymentDueDate,
-                createdAt = OffsetDateTime.now(),
-                updatedAt = OffsetDateTime.now(),
-            )
+    ): Invoice =
+        tx.required {
+            val result = calculator.compute(paymentAmount)
+            val invoice =
+                Invoice(
+                    userId = userId,
+                    issueDate = issueDate,
+                    paymentAmount = paymentAmount,
+                    fee = result.fee,
+                    feeRate = feeRate,
+                    taxAmount = result.tax,
+                    taxRate = taxRate,
+                    totalAmount = result.total,
+                    paymentDueDate = paymentDueDate,
+                    createdAt = OffsetDateTime.now(),
+                    updatedAt = OffsetDateTime.now(),
+                )
 
-        return invoiceRepository.create(invoice)
-    }
+            invoiceRepository.create(invoice)
+        }
 
     suspend fun getInvoices(
         userId: Long,

@@ -1,21 +1,23 @@
 package com.example.infrastructure.database.repository
 
+import com.example.domain.auth.exception.UserAlreadyExistsException
 import com.example.domain.auth.model.User
 import com.example.domain.auth.model.valueobject.Email
 import com.example.domain.auth.model.valueobject.Password
 import com.example.domain.auth.repository.UserRepository
 import com.example.infrastructure.database.schema.UsersTable
-import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import java.sql.SQLException
 import java.time.OffsetDateTime
 
-class UserRepositoryImpl(private val database: Database) : UserRepository {
-    override suspend fun create(user: User): Long =
-        dbQuery {
+class UserRepositoryImpl : UserRepository {
+    override suspend fun create(user: User): Long {
+        requireActiveTransaction()
+        try {
             val now = OffsetDateTime.now()
-            UsersTable.insert {
+            return UsersTable.insert {
                 it[companyName] = user.companyName
                 it[name] = user.name
                 it[email] = user.email.value
@@ -23,28 +25,35 @@ class UserRepositoryImpl(private val database: Database) : UserRepository {
                 it[createdAt] = now
                 it[updatedAt] = now
             }[UsersTable.id].value
+        } catch (e: Exception) {
+            if (isUniqueViolation(e)) {
+                throw UserAlreadyExistsException("User with email ${user.email.value} already exists")
+            }
+            throw e
         }
+    }
 
-    override suspend fun findById(id: Long): User? =
-        dbQuery {
-            UsersTable.selectAll()
-                .where { UsersTable.id eq id }
-                .map { it.toUser() }
-                .singleOrNull()
-        }
+    override suspend fun findById(id: Long): User? {
+        requireActiveTransaction()
+        return UsersTable.selectAll()
+            .where { UsersTable.id eq id }
+            .map { it.toUser() }
+            .singleOrNull()
+    }
 
-    override suspend fun findByEmail(email: Email): User? =
-        dbQuery {
-            UsersTable.selectAll()
-                .where { UsersTable.email eq email.value }
-                .map { it.toUser() }
-                .singleOrNull()
-        }
+    override suspend fun findByEmail(email: Email): User? {
+        requireActiveTransaction()
+        return UsersTable.selectAll()
+            .where { UsersTable.email eq email.value }
+            .map { it.toUser() }
+            .singleOrNull()
+    }
 
     override suspend fun update(
         id: Long,
         user: User,
-    ) = dbQuery {
+    ) {
+        requireActiveTransaction()
         UsersTable.update({ UsersTable.id eq id }) {
             it[companyName] = user.companyName
             it[name] = user.name
@@ -52,14 +61,19 @@ class UserRepositoryImpl(private val database: Database) : UserRepository {
             it[password] = user.password.value
             it[updatedAt] = OffsetDateTime.now()
         }
-        Unit
     }
 
-    override suspend fun delete(id: Long) =
-        dbQuery {
-            UsersTable.deleteWhere { UsersTable.id.eq(id) }
-            Unit
-        }
+    override suspend fun delete(id: Long) {
+        requireActiveTransaction()
+        UsersTable.deleteWhere { UsersTable.id.eq(id) }
+    }
+
+    override suspend fun existsByEmail(email: Email): Boolean {
+        requireActiveTransaction()
+        return UsersTable.selectAll()
+            .where { UsersTable.email eq email.value }
+            .count() > 0
+    }
 
     private fun ResultRow.toUser(): User {
         return User(
@@ -73,5 +87,22 @@ class UserRepositoryImpl(private val database: Database) : UserRepository {
         )
     }
 
-    private suspend fun <T> dbQuery(block: suspend () -> T): T = newSuspendedTransaction(Dispatchers.IO, database) { block() }
+    private fun requireActiveTransaction() {
+        requireNotNull(
+            TransactionManager.currentOrNull(),
+        ) { "No active transaction. Repository methods must be called within a transaction." }
+    }
+
+    private fun isUniqueViolation(e: Exception): Boolean {
+        // PostgreSQLの場合: SQLState 23505 (unique_violation)
+        val sqlState =
+            when {
+                e.cause?.cause is SQLException -> (e.cause?.cause as SQLException).sqlState
+                e.cause is SQLException -> (e.cause as SQLException).sqlState
+                e is SQLException -> e.sqlState
+                else -> null
+            }
+
+        return sqlState == "23505" // unique_violation
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.domain.auth.service.fixture
 
+import com.example.domain.auth.exception.UserAlreadyExistsException
 import com.example.domain.auth.model.User
 import com.example.domain.auth.model.valueobject.Email
 import com.example.domain.auth.repository.UserRepository
@@ -14,6 +15,11 @@ class FakeUserRepository : UserRepository {
     private var sequence = 0L
 
     override suspend fun create(user: User): Long {
+        // Check for duplicate email
+        if (existsByEmail(user.email)) {
+            throw UserAlreadyExistsException("User with email ${user.email.value} already exists")
+        }
+
         val id = ++sequence
         val now = OffsetDateTime.now()
         val userWithId =
@@ -29,6 +35,8 @@ class FakeUserRepository : UserRepository {
     override suspend fun findById(id: Long): User? = store[id]
 
     override suspend fun findByEmail(email: Email): User? = store.values.firstOrNull { it.email == email }
+
+    override suspend fun existsByEmail(email: Email): Boolean = store.values.any { it.email == email }
 
     override suspend fun update(
         id: Long,

@@ -10,6 +10,8 @@ interface UserRepository {
 
     suspend fun findByEmail(email: Email): User?
 
+    suspend fun existsByEmail(email: Email): Boolean
+
     suspend fun update(
         id: Long,
         user: User,

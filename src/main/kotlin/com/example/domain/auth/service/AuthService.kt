@@ -4,30 +4,31 @@ import com.example.domain.auth.model.User
 import com.example.domain.auth.model.valueobject.Email
 import com.example.domain.auth.model.valueobject.Password
 import com.example.domain.auth.repository.UserRepository
+import com.example.infrastructure.database.Tx
 
-class AuthService(private val userRepository: UserRepository) {
+class AuthService(
+    private val userRepository: UserRepository,
+    private val tx: Tx,
+) {
     suspend fun registerUser(
         companyName: String,
         name: String,
         email: Email,
         password: Password,
-    ): User {
-        // Check if email already exists
-        val existingUser = userRepository.findByEmail(email)
-        require(existingUser == null) { "Email already exists" }
+    ): User =
+        tx.required {
+            // Create user
+            val user =
+                User(
+                    companyName = companyName,
+                    name = name,
+                    email = email,
+                    password = password.hash(),
+                )
 
-        // Create user
-        val user =
-            User(
-                companyName = companyName,
-                name = name,
-                email = email,
-                password = password.hash(),
-            )
-
-        val userId = userRepository.create(user)
-        return userRepository.findById(userId)!!
-    }
+            val userId = userRepository.create(user)
+            userRepository.findById(userId)!!
+        }
 
     suspend fun authenticateUser(
         email: Email,

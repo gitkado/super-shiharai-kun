@@ -1,8 +1,10 @@
 package com.example.config.di
 
 import com.example.config.database.HikariDataSourceKey
+import com.example.infrastructure.database.Tx
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
+import io.ktor.util.logging.*
 import org.jetbrains.exposed.sql.Database
 import org.koin.dsl.module
 
@@ -21,5 +23,10 @@ val databaseModule =
         // Database instanceをsingletonとして登録
         single<Database> {
             Database.connect(get<HikariDataSource>())
+        }
+
+        // Txユーティリティをsingletonとして登録
+        single<Tx> {
+            Tx(get<Database>(), KtorSimpleLogger("TX"))
         }
     }
