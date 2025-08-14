@@ -9,7 +9,7 @@ database:
   migration_strategy: "none"  # テストでは何もしない
 
 postgres:
-  url: "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"  # テスト用のH2インメモリDB
+  url: "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1;NON_KEYWORDS=VALUE"  # H2 PostgreSQLモード
   user: test
   password: test
 

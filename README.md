@@ -257,15 +257,14 @@ docker compose -f docker/compose.integration.yaml up --build -d
 ## テスト方針
 
 ### 基本方針
-- アウトサイドインなテスト方針を採用
-- サービスの関数ごとにテストを実装
-- 最低限の振る舞い担保として正常系1本のみの実装でスタート
+- 責務分離に基づく階層別テスト戦略を採用
+- Service層：ビジネスルールのテスト（FakeRepository使用）
+- Repository層：SQLロジックのテスト（H2統合テスト使用）
 
 ### テスト構成
-- FakeRepository等は`test/.../service/fixture/`に作成してテストダブルとして利用
+- Service層テスト: FakeRepository等を`test/.../service/fixture/`で作成してビジネスロジック検証
+- Repository層統合テスト: H2 PostgreSQLモードで実装クラスを直接検証
 - Given-When-Thenパターンを厳密に適用
-- データベースに依存しないインメモリテストを基本とする
-- ExposedとのORM結合まで担保する必要が出てきた場合はH2インメモリDBを使用した統合テストに切り替え可能
 
 ### テストケースの命名規則
 ```kotlin
@@ -279,21 +278,29 @@ fun `[関数名] - [テストケースの説明]`() = runTest {
 }
 ```
 
-### 例: AuthServiceTest
+### 例: Service層テスト
 ```kotlin
-class AuthServiceTest {
-    private val userRepository = FakeUserRepository()
-    private val authService = AuthService(userRepository)
-
-    @BeforeTest
-    fun setUp() {
-        userRepository.clear()
-    }
+class InvoiceServiceTest {
+    private val invoiceRepository = FakeInvoiceRepository()
+    private val invoiceService = InvoiceService(invoiceRepository, MockTx())
 
     @Test
-    fun `registerUser - サービス利用するための自身のユーザを登録できること`() = runTest {
-        // Given-When-Thenパターンで正常系テスト実装
-        // 最低限の振る舞い担保として1本のみ
+    fun `registerInvoice - 請求書データを登録できること`() = runTest {
+        // Given: ビジネスロジック（手数料・税計算）の検証
+        // When: サービス呼び出し
+        // Then: 計算結果の正当性確認
+    }
+}
+```
+
+### 例: Repository層統合テスト
+```kotlin
+class InvoiceRepositoryImplIntegrationTest {
+    @Test
+    fun `findByUserIdWithDateRange - WHERE句による期間絞り込みが正しく動作する`() = runBlocking {
+        // Given: H2 PostgreSQLモードでSQLロジック検証
+        // When: Repository実装の直接呼び出し
+        // Then: ORDER BY、WHERE句の動作確認
     }
 }
 ```
