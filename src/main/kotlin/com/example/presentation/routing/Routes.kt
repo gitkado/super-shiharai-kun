@@ -33,6 +33,8 @@ fun Application.configureRouting() {
                 when {
                     cause.message?.contains("email", ignoreCase = true) == true -> "email"
                     cause.message?.contains("password", ignoreCase = true) == true -> "password"
+                    cause.message?.contains("company", ignoreCase = true) == true -> "companyName"
+                    cause.message?.contains("name", ignoreCase = true) == true -> "name"
                     cause.message?.contains("fromDate", ignoreCase = true) == true -> "validation"
                     else -> "validation"
                 }

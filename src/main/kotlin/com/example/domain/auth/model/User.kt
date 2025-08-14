@@ -14,7 +14,9 @@ data class User(
     val updatedAt: OffsetDateTime? = null,
 ) {
     init {
-        require(companyName.isNotBlank()) { "companyName must not be blank" }
-        require(name.isNotBlank()) { "name must not be blank" }
+        require(companyName.isNotBlank()) { "Company name is required" }
+        require(name.isNotBlank()) { "Name is required" }
+        require(companyName.length <= 255) { "Company name must be 255 characters or less" }
+        require(name.length <= 255) { "Name must be 255 characters or less" }
     }
 }
