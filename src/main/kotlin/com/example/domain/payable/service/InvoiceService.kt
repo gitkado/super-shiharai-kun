@@ -50,12 +50,13 @@ class InvoiceService(
         userId: Long,
         paymentDueFrom: LocalDate? = null,
         paymentDueTo: LocalDate? = null,
-    ): List<Invoice> {
-        // ビジネスルール: paymentDueFromはpaymentDueTo以前である必要がある
-        if (paymentDueFrom != null && paymentDueTo != null) {
-            require(paymentDueFrom <= paymentDueTo) { "paymentDueFrom must be before or equal to paymentDueTo" }
-        }
+    ): List<Invoice> =
+        tx.readOnly {
+            // ビジネスルール: paymentDueFromはpaymentDueTo以前である必要がある
+            if (paymentDueFrom != null && paymentDueTo != null) {
+                require(paymentDueFrom <= paymentDueTo) { "paymentDueFrom must be before or equal to paymentDueTo" }
+            }
 
-        return invoiceRepository.findByUserIdWithDateRange(userId, paymentDueFrom, paymentDueTo)
-    }
+            invoiceRepository.findByUserIdWithDateRange(userId, paymentDueFrom, paymentDueTo)
+        }
 }

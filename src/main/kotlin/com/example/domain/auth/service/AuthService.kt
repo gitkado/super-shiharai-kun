@@ -33,9 +33,10 @@ class AuthService(
     suspend fun authenticateUser(
         email: Email,
         rawPassword: String,
-    ): User? {
-        val user = userRepository.findByEmail(email) ?: return null
+    ): User? =
+        tx.readOnly {
+            val user = userRepository.findByEmail(email) ?: return@readOnly null
 
-        return if (user.password.verify(rawPassword)) user else null
-    }
+            if (user.password.verify(rawPassword)) user else null
+        }
 }

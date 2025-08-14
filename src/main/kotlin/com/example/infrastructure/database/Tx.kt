@@ -37,6 +37,40 @@ open class Tx(
         }
     }
 
+    /**
+     * 読み取り専用トランザクション
+     *
+     * - READ_COMMITTED分離レベルで軽量化
+     * - isReadOnly = true でロック競合を削減
+     * - PostgreSQLの場合は明示的にSET TRANSACTION READ ONLY
+     */
+    open suspend fun <T> readOnly(block: suspend Transaction.() -> T): T {
+        val existing = TransactionManager.currentOrNull()
+        return if (existing != null) {
+            block(existing) // 既存TXに相乗り
+        } else {
+            runWithRetry {
+                newSuspendedTransaction(Dispatchers.IO, db) {
+                    // 軽量な読み取り用の設定
+                    connection.transactionIsolation = Connection.TRANSACTION_READ_COMMITTED
+
+                    // PostgreSQL専用のREAD ONLYモード設定
+                    try {
+                        val url = db.url
+                        if (url.contains("postgresql", ignoreCase = true) && !url.contains("h2", ignoreCase = true)) {
+                            exec("SET TRANSACTION READ ONLY")
+                        }
+                    } catch (e: Exception) {
+                        // H2等では非対応のため無視
+                        logger.debug("Read-only transaction setup failed (expected for H2): ${e.message}")
+                    }
+
+                    block(this)
+                }
+            }
+        }
+    }
+
     private suspend fun <T> runWithRetry(exec: suspend () -> T): T {
         var last: Throwable? = null
         repeat(maxRetries + 1) { attempt ->

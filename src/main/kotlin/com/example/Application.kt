@@ -30,6 +30,9 @@ fun Application.module() {
     // KoinにApplicationインスタンスを登録
     getKoin().declare(this)
 
+    // KoinにApplicationConfigを登録
+    getKoin().declare(environment.config)
+
     // Koinライフサイクルイベント監視
     monitor.subscribe(KoinApplicationStarted) {
         log.info("🚀 Koin DI container started successfully")

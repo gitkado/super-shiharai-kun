@@ -21,4 +21,14 @@ class MockTx : Tx(Database.connect("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")) {
             }
         }
     }
+
+    override suspend fun <T> readOnly(block: suspend Transaction.() -> T): T {
+        // テスト用: 読み取り専用も通常のトランザクションで実行（H2では特別な設定不要）
+        val testDb = Database.connect("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
+        return runBlocking {
+            transaction(db = testDb) {
+                runBlocking { block(this@transaction) }
+            }
+        }
+    }
 }
